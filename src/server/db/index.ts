@@ -1,7 +1,8 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import crypto from 'node:crypto';
-import type { Attendee, DashboardSummary } from '../../shared/types.js';
+import pg from 'pg';
+import type { Attendee, DashboardSummary, CheckInResult } from '../../shared/types.js';
+
+const { Pool } = pg;
 
 export interface OrganizerRecord {
   id: number;
@@ -11,104 +12,112 @@ export interface OrganizerRecord {
   createdAt: string;
 }
 
-interface DatabaseState {
-  attendees: Attendee[];
-  organizers: OrganizerRecord[];
-  nextAttendeeId: number;
-  nextOrganizerId: number;
+function mapRowToAttendee(row: any): Attendee {
+  return {
+    id: row.id,
+    qrId: row.qr_id,
+    name: row.name,
+    email: row.email || null,
+    company: row.company || null,
+    ticketType: row.ticket_type || 'General',
+    checkedInAt: row.checked_in_at ? new Date(row.checked_in_at).toISOString() : null,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+  };
 }
 
 class EventDatabase {
-  private dataDir: string;
-  private dbFilePath: string;
-  private state: DatabaseState = {
-    attendees: [],
-    organizers: [],
-    nextAttendeeId: 1,
-    nextOrganizerId: 1,
-  };
-  private isInitialized = false;
+  private pool: pg.Pool | null = null;
+  private initPromise: Promise<void> | null = null;
 
-  constructor() {
-    this.dataDir = path.resolve(process.cwd(), 'data');
-    this.dbFilePath = path.join(this.dataDir, 'event-data.json');
+  private getPool(): pg.Pool {
+    if (!this.pool) {
+      const connectionString = process.env.DATABASE_URL;
+      if (!connectionString) {
+        throw new Error('DATABASE_URL environment variable is required to connect to Neon PostgreSQL.');
+      }
+      this.pool = new Pool({
+        connectionString,
+        ssl: {
+          rejectUnauthorized: false,
+        },
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+      });
+
+      this.pool.on('error', (err) => {
+        console.error('[Database Pool Error]:', err);
+      });
+    }
+    return this.pool;
   }
 
   public async init(): Promise<void> {
-    if (this.isInitialized) return;
-
-    if (!fs.existsSync(this.dataDir)) {
-      fs.mkdirSync(this.dataDir, { recursive: true });
+    if (!this.initPromise) {
+      this.initPromise = this._initInternal();
     }
+    return this.initPromise;
+  }
 
-    if (fs.existsSync(this.dbFilePath)) {
-      try {
-        const raw = fs.readFileSync(this.dbFilePath, 'utf-8');
-        const parsed = JSON.parse(raw);
-        this.state = {
-          attendees: parsed.attendees || [],
-          organizers: parsed.organizers || [],
-          nextAttendeeId: parsed.nextAttendeeId || (parsed.attendees?.length ? Math.max(...parsed.attendees.map((a: any) => a.id)) + 1 : 1),
-          nextOrganizerId: parsed.nextOrganizerId || (parsed.organizers?.length ? Math.max(...parsed.organizers.map((o: any) => o.id)) + 1 : 1),
-        };
-      } catch (err) {
-        console.error('Failed to parse existing event database file, initializing fresh store:', err);
-      }
-    }
+  private async _initInternal(): Promise<void> {
+    const pool = this.getPool();
 
-    // Seed default organizer if none exists
-    if (this.state.organizers.length === 0) {
+    // 1. Create tables
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS attendees (
+        id SERIAL PRIMARY KEY,
+        qr_id VARCHAR(50) UNIQUE NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255),
+        company VARCHAR(255),
+        ticket_type VARCHAR(50) DEFAULT 'General',
+        checked_in_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_attendees_qr_id ON attendees(qr_id);
+
+      CREATE TABLE IF NOT EXISTS organizers (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(100) UNIQUE NOT NULL,
+        display_name VARCHAR(255) NOT NULL,
+        password_hash TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    // 2. Seed organizer if table is empty
+    const orgCheck = await pool.query('SELECT COUNT(*) FROM organizers');
+    if (parseInt(orgCheck.rows[0].count, 10) === 0) {
       const { hashPassword } = await import('../lib/auth.js');
       const defaultPassword = process.env.ORGANIZER_PASSWORD || 'welcome123';
       const passwordHash = await hashPassword(defaultPassword);
-      this.state.organizers.push({
-        id: this.state.nextOrganizerId++,
-        username: 'organizer',
-        displayName: 'Event Lead Organizer',
-        passwordHash,
-        createdAt: new Date().toISOString(),
-      });
-      this.save();
+
+      await pool.query(
+        `INSERT INTO organizers (username, display_name, password_hash) VALUES ($1, $2, $3)`,
+        ['organizer', 'Event Lead Organizer', passwordHash]
+      );
+      console.log('[Database] Default organizer account initialized (user: organizer).');
     }
 
-    // Seed sample attendees if empty for instant testing
-    if (this.state.attendees.length === 0) {
-      this.seedInitialAttendees();
+    // 3. Seed initial sample attendees if table is empty
+    const attendeeCheck = await pool.query('SELECT COUNT(*) FROM attendees');
+    if (parseInt(attendeeCheck.rows[0].count, 10) === 0) {
+      const samples = [
+        { qrId: 'EVT-7Q4M-001', name: 'Jordan Lee', email: 'jordan@example.com', company: 'Apex Tech Inc.', ticketType: 'General' },
+        { qrId: 'EVT-7Q4M-002', name: 'Maya Patel', email: 'maya@example.com', company: 'Horizon Design Co.', ticketType: 'VIP' },
+        { qrId: 'EVT-7Q4M-003', name: 'Dr. Theo Martin', email: 'theo@example.com', company: 'Nova Institute', ticketType: 'Speaker' },
+        { qrId: 'EVT-9BHY-2S5Y', name: 'Samantha Reed', email: 'samantha@biotech.org', company: 'BioTech Innovations', ticketType: 'VIP' },
+      ];
+
+      for (const s of samples) {
+        await pool.query(
+          `INSERT INTO attendees (qr_id, name, email, company, ticket_type) VALUES ($1, $2, $3, $4, $5)`,
+          [s.qrId, s.name, s.email, s.company, s.ticketType]
+        );
+      }
+      console.log('[Database] Initial attendees seeded.');
     }
-
-    this.isInitialized = true;
-  }
-
-  private save(): void {
-    try {
-      const tmpPath = `${this.dbFilePath}.tmp-${Date.now()}`;
-      fs.writeFileSync(tmpPath, JSON.stringify(this.state, null, 2), 'utf-8');
-      fs.renameSync(tmpPath, this.dbFilePath);
-    } catch (err) {
-      console.error('Error saving database to file:', err);
-    }
-  }
-
-  private seedInitialAttendees() {
-    const samples = [
-      { qrId: 'EVT-7Q4M-001', name: 'Jordan Lee', email: 'jordan@example.com', company: 'Apex Tech Inc.', ticketType: 'General' },
-      { qrId: 'EVT-7Q4M-002', name: 'Maya Patel', email: 'maya@example.com', company: 'Horizon Design Co.', ticketType: 'VIP' },
-      { qrId: 'EVT-7Q4M-003', name: 'Dr. Theo Martin', email: 'theo@example.com', company: 'Nova Institute', ticketType: 'Speaker' },
-    ];
-
-    for (const sample of samples) {
-      this.state.attendees.push({
-        id: this.state.nextAttendeeId++,
-        qrId: sample.qrId,
-        name: sample.name,
-        email: sample.email,
-        company: sample.company,
-        ticketType: sample.ticketType,
-        checkedInAt: null,
-        createdAt: new Date().toISOString(),
-      });
-    }
-    this.save();
   }
 
   public generateUniqueQrId(): string {
@@ -121,73 +130,104 @@ class EventDatabase {
     return `EVT-${code.slice(0, 4)}-${code.slice(4)}`;
   }
 
-  public getAttendees(filters?: { q?: string; status?: 'all' | 'checked-in' | 'pending' }): Attendee[] {
-    let list = [...this.state.attendees];
+  public async getAttendees(filters?: { q?: string; status?: 'all' | 'checked-in' | 'pending' }): Promise<Attendee[]> {
+    await this.init();
+    const pool = this.getPool();
 
-    if (filters?.q) {
-      const query = filters.q.toLowerCase().trim();
-      list = list.filter(
-        (a) =>
-          a.name.toLowerCase().includes(query) ||
-          (a.email && a.email.toLowerCase().includes(query)) ||
-          (a.company && a.company.toLowerCase().includes(query)) ||
-          a.qrId.toLowerCase().includes(query)
-      );
+    const conditions: string[] = [];
+    const values: any[] = [];
+
+    if (filters?.q && filters.q.trim()) {
+      values.push(`%${filters.q.trim().toLowerCase()}%`);
+      const idx = values.length;
+      conditions.push(`(
+        LOWER(name) LIKE $${idx} OR
+        LOWER(COALESCE(email, '')) LIKE $${idx} OR
+        LOWER(COALESCE(company, '')) LIKE $${idx} OR
+        LOWER(qr_id) LIKE $${idx}
+      )`);
     }
 
     if (filters?.status === 'checked-in') {
-      list = list.filter((a) => a.checkedInAt !== null);
+      conditions.push('checked_in_at IS NOT NULL');
     } else if (filters?.status === 'pending') {
-      list = list.filter((a) => a.checkedInAt === null);
+      conditions.push('checked_in_at IS NULL');
     }
 
-    // Sort: most recent check-in or created
-    return list.sort((a, b) => b.id - a.id);
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const res = await pool.query(
+      `SELECT * FROM attendees ${whereClause} ORDER BY id DESC`,
+      values
+    );
+
+    return res.rows.map(mapRowToAttendee);
   }
 
-  public getAttendeeByQrId(qrId: string): Attendee | null {
-    const normalized = qrId.trim().toUpperCase();
-    return this.state.attendees.find((a) => a.qrId.toUpperCase() === normalized) || null;
+  public async getAttendeeByQrId(qrId: string): Promise<Attendee | null> {
+    await this.init();
+    const pool = this.getPool();
+    const res = await pool.query(
+      `SELECT * FROM attendees WHERE UPPER(qr_id) = UPPER($1) LIMIT 1`,
+      [qrId.trim()]
+    );
+    if (res.rows.length === 0) return null;
+    return mapRowToAttendee(res.rows[0]);
   }
 
-  public getAttendeeById(id: number): Attendee | null {
-    return this.state.attendees.find((a) => a.id === id) || null;
+  public async getAttendeeById(id: number): Promise<Attendee | null> {
+    await this.init();
+    const pool = this.getPool();
+    const res = await pool.query(`SELECT * FROM attendees WHERE id = $1 LIMIT 1`, [id]);
+    if (res.rows.length === 0) return null;
+    return mapRowToAttendee(res.rows[0]);
   }
 
-  public createAttendee(data: {
+  public async createAttendee(data: {
     name: string;
     email?: string | null;
     company?: string | null;
     ticketType?: string;
     qrId?: string;
     checkedIn?: boolean;
-  }): Attendee {
+  }): Promise<Attendee> {
+    await this.init();
+    const pool = this.getPool();
+
     let qrId = data.qrId?.trim();
     if (!qrId) {
-      do {
+      let isUnique = false;
+      while (!isUnique) {
         qrId = this.generateUniqueQrId();
-      } while (this.state.attendees.some((a) => a.qrId === qrId));
+        const existing = await pool.query('SELECT id FROM attendees WHERE qr_id = $1', [qrId]);
+        if (existing.rows.length === 0) {
+          isUnique = true;
+        }
+      }
     }
 
-    const newAttendee: Attendee = {
-      id: this.state.nextAttendeeId++,
-      qrId,
-      name: data.name.trim(),
-      email: data.email?.trim() || null,
-      company: data.company?.trim() || null,
-      ticketType: data.ticketType?.trim() || 'General',
-      checkedInAt: data.checkedIn ? new Date().toISOString() : null,
-      createdAt: new Date().toISOString(),
-    };
+    const checkedInAt = data.checkedIn ? new Date() : null;
 
-    this.state.attendees.push(newAttendee);
-    this.save();
-    return newAttendee;
+    const res = await pool.query(
+      `INSERT INTO attendees (qr_id, name, email, company, ticket_type, checked_in_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [
+        qrId,
+        data.name.trim(),
+        data.email?.trim() || null,
+        data.company?.trim() || null,
+        data.ticketType?.trim() || 'General',
+        checkedInAt,
+      ]
+    );
+
+    return mapRowToAttendee(res.rows[0]);
   }
 
-  public checkInAttendee(qrId: string): { status: 'valid' | 'duplicate' | 'invalid'; message: string; attendee: Attendee | null } {
-    const trimmed = qrId.trim();
-    const attendee = this.getAttendeeByQrId(trimmed);
+  public async checkInAttendee(qrId: string): Promise<CheckInResult> {
+    await this.init();
+    const pool = this.getPool();
+    const attendee = await this.getAttendeeByQrId(qrId);
 
     if (!attendee) {
       return {
@@ -205,31 +245,45 @@ class EventDatabase {
       };
     }
 
-    attendee.checkedInAt = new Date().toISOString();
-    this.save();
+    const res = await pool.query(
+      `UPDATE attendees SET checked_in_at = NOW() WHERE id = $1 RETURNING *`,
+      [attendee.id]
+    );
 
+    const updated = mapRowToAttendee(res.rows[0]);
     return {
       status: 'valid',
-      message: `${attendee.name} successfully checked in.`,
-      attendee,
+      message: `${updated.name} successfully checked in.`,
+      attendee: updated,
     };
   }
 
-  public getDashboardSummary(): DashboardSummary {
-    const total = this.state.attendees.length;
-    const checkedIn = this.state.attendees.filter((a) => a.checkedInAt !== null).length;
-    const remaining = total - checkedIn;
+  public async getDashboardSummary(): Promise<DashboardSummary> {
+    await this.init();
+    const pool = this.getPool();
 
-    const recentCheckIns = this.state.attendees
-      .filter((a): a is Attendee & { checkedInAt: string } => a.checkedInAt !== null)
-      .sort((a, b) => new Date(b.checkedInAt).getTime() - new Date(a.checkedInAt).getTime())
-      .slice(0, 8)
-      .map((a) => ({
-        name: a.name,
-        ticketType: a.ticketType,
-        company: a.company,
-        checkedInAt: a.checkedInAt,
-      }));
+    const [totalRes, checkedInRes, recentRes] = await Promise.all([
+      pool.query('SELECT COUNT(*) FROM attendees'),
+      pool.query('SELECT COUNT(*) FROM attendees WHERE checked_in_at IS NOT NULL'),
+      pool.query(`
+        SELECT name, ticket_type, company, checked_in_at
+        FROM attendees
+        WHERE checked_in_at IS NOT NULL
+        ORDER BY checked_in_at DESC
+        LIMIT 8
+      `),
+    ]);
+
+    const total = parseInt(totalRes.rows[0].count, 10) || 0;
+    const checkedIn = parseInt(checkedInRes.rows[0].count, 10) || 0;
+    const remaining = Math.max(0, total - checkedIn);
+
+    const recentCheckIns = recentRes.rows.map((r) => ({
+      name: r.name,
+      ticketType: r.ticket_type,
+      company: r.company || undefined,
+      checkedInAt: new Date(r.checked_in_at).toISOString(),
+    }));
 
     return {
       total,
@@ -239,14 +293,36 @@ class EventDatabase {
     };
   }
 
-  public getOrganizerUser(username: string): { username: string; displayName: string } | null {
-    const user = this.state.organizers.find((u) => u.username.toLowerCase() === username.toLowerCase());
-    if (!user) return null;
-    return { username: user.username, displayName: user.displayName };
+  public async getOrganizerUser(username: string): Promise<{ username: string; displayName: string } | null> {
+    await this.init();
+    const pool = this.getPool();
+    const res = await pool.query(
+      `SELECT username, display_name FROM organizers WHERE LOWER(username) = LOWER($1) LIMIT 1`,
+      [username.trim()]
+    );
+    if (res.rows.length === 0) return null;
+    return {
+      username: res.rows[0].username,
+      displayName: res.rows[0].display_name,
+    };
   }
 
-  public getOrganizerUserWithHash(username: string): OrganizerRecord | null {
-    return this.state.organizers.find((u) => u.username.toLowerCase() === username.toLowerCase()) || null;
+  public async getOrganizerUserWithHash(username: string): Promise<OrganizerRecord | null> {
+    await this.init();
+    const pool = this.getPool();
+    const res = await pool.query(
+      `SELECT id, username, display_name, password_hash, created_at FROM organizers WHERE LOWER(username) = LOWER($1) LIMIT 1`,
+      [username.trim()]
+    );
+    if (res.rows.length === 0) return null;
+    const r = res.rows[0];
+    return {
+      id: r.id,
+      username: r.username,
+      displayName: r.display_name,
+      passwordHash: r.password_hash,
+      createdAt: new Date(r.created_at).toISOString(),
+    };
   }
 }
 

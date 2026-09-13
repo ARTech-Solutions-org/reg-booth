@@ -1,12 +1,10 @@
 import { Router } from 'express';
 import { db } from '../db/index.js';
-import { requireOrganizer } from '../lib/auth.js';
 
 const router = Router();
 // Check-ins can be initiated from the entrance kiosk terminal
 
-
-router.post('/check-ins', (req, res): void => {
+router.post('/check-ins', async (req, res): Promise<void> => {
   const { qrId } = req.body;
 
   if (!qrId || typeof qrId !== 'string' || !qrId.trim()) {
@@ -18,8 +16,17 @@ router.post('/check-ins', (req, res): void => {
     return;
   }
 
-  const result = db.checkInAttendee(qrId.trim());
-  res.json(result);
+  try {
+    const result = await db.checkInAttendee(qrId.trim());
+    res.json(result);
+  } catch (err: any) {
+    console.error('Check-in error:', err);
+    res.status(500).json({
+      status: 'invalid',
+      message: 'Failed to process check-in. Please try again.',
+      attendee: null,
+    });
+  }
 });
 
 export default router;

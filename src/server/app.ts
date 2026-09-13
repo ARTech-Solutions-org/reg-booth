@@ -21,8 +21,8 @@ export function createApp(): Express {
   app.use(express.urlencoded({ extended: true }));
 
   // Health check
-  app.get('/api/healthz', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  app.get(['/api', '/api/healthz'], (_req, res) => {
+    res.json({ status: 'ok', service: 'EventPass API', timestamp: new Date().toISOString() });
   });
 
   // Mount API routes

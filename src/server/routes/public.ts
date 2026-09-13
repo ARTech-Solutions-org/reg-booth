@@ -13,7 +13,7 @@ router.post('/public/register', async (req, res): Promise<void> => {
   }
 
   try {
-    const attendee = db.createAttendee({
+    const attendee = await db.createAttendee({
       name: name.trim(),
       email: email && typeof email === 'string' ? email.trim() : null,
       company: company && typeof company === 'string' ? company.trim() : null,

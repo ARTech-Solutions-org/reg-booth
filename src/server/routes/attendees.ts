@@ -5,18 +5,23 @@ import { requireOrganizer } from '../lib/auth.js';
 const router = Router();
 
 // List attendees with optional search and filter (Organizers only)
-router.get('/attendees', requireOrganizer, (req, res): void => {
+router.get('/attendees', requireOrganizer, async (req, res): Promise<void> => {
   const q = typeof req.query.q === 'string' ? req.query.q : undefined;
   const status = typeof req.query.status === 'string' && ['all', 'checked-in', 'pending'].includes(req.query.status)
     ? (req.query.status as 'all' | 'checked-in' | 'pending')
     : 'all';
 
-  const attendees = db.getAttendees({ q, status });
-  res.json(attendees);
+  try {
+    const attendees = await db.getAttendees({ q, status });
+    res.json(attendees);
+  } catch (err: any) {
+    console.error('Error fetching attendees:', err);
+    res.status(500).json({ error: 'Failed to fetch attendees' });
+  }
 });
 
 // Admin walk-in on-site registration (Immediately marks checked in + returns QR ID for badge printing)
-router.post('/attendees/walk-in', (req, res): void => {
+router.post('/attendees/walk-in', async (req, res): Promise<void> => {
   const { name, email, company, ticketType } = req.body;
 
   if (!name || typeof name !== 'string' || !name.trim()) {
@@ -25,7 +30,7 @@ router.post('/attendees/walk-in', (req, res): void => {
   }
 
   try {
-    const attendee = db.createAttendee({
+    const attendee = await db.createAttendee({
       name: name.trim(),
       email: email && typeof email === 'string' ? email.trim() : null,
       company: company && typeof company === 'string' ? company.trim() : null,
@@ -45,7 +50,7 @@ router.post('/attendees/walk-in', (req, res): void => {
 });
 
 // Standard attendee creation (Organizers only)
-router.post('/attendees/create', requireOrganizer, (req, res): void => {
+router.post('/attendees/create', requireOrganizer, async (req, res): Promise<void> => {
   const { name, email, company, ticketType, qrId } = req.body;
 
   if (!name || typeof name !== 'string' || !name.trim()) {
@@ -54,7 +59,7 @@ router.post('/attendees/create', requireOrganizer, (req, res): void => {
   }
 
   try {
-    const attendee = db.createAttendee({
+    const attendee = await db.createAttendee({
       name: name.trim(),
       email: email && typeof email === 'string' ? email.trim() : null,
       company: company && typeof company === 'string' ? company.trim() : null,
@@ -71,7 +76,7 @@ router.post('/attendees/create', requireOrganizer, (req, res): void => {
 });
 
 // Bulk CSV import (Organizers only)
-router.post('/attendees/import', requireOrganizer, (req, res): void => {
+router.post('/attendees/import', requireOrganizer, async (req, res): Promise<void> => {
   const { attendees } = req.body;
 
   if (!Array.isArray(attendees) || attendees.length === 0) {
@@ -79,28 +84,33 @@ router.post('/attendees/import', requireOrganizer, (req, res): void => {
     return;
   }
 
-  let imported = 0;
-  const createdList = [];
+  try {
+    let imported = 0;
+    const createdList = [];
 
-  for (const item of attendees) {
-    if (!item.name || !item.name.trim()) continue;
-    const created = db.createAttendee({
-      name: item.name.trim(),
-      email: item.email?.trim() || null,
-      company: item.company?.trim() || null,
-      ticketType: item.ticketType?.trim() || 'General',
-      qrId: item.qrId?.trim() || undefined,
-      checkedIn: false,
+    for (const item of attendees) {
+      if (!item.name || !item.name.trim()) continue;
+      const created = await db.createAttendee({
+        name: item.name.trim(),
+        email: item.email?.trim() || null,
+        company: item.company?.trim() || null,
+        ticketType: item.ticketType?.trim() || 'General',
+        qrId: item.qrId?.trim() || undefined,
+        checkedIn: false,
+      });
+      createdList.push(created);
+      imported++;
+    }
+
+    res.status(201).json({
+      imported,
+      skipped: attendees.length - imported,
+      attendees: createdList,
     });
-    createdList.push(created);
-    imported++;
+  } catch (err: any) {
+    console.error('Bulk import error:', err);
+    res.status(500).json({ error: 'Failed to import attendees.' });
   }
-
-  res.status(201).json({
-    imported,
-    skipped: attendees.length - imported,
-    attendees: createdList,
-  });
 });
 
 export default router;

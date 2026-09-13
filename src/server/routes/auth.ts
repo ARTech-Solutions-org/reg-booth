@@ -12,7 +12,7 @@ router.post('/auth/login', async (req, res): Promise<void> => {
     return;
   }
 
-  const user = db.getOrganizerUserWithHash(username.trim());
+  const user = await db.getOrganizerUserWithHash(username.trim());
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     res.status(401).json({ error: 'Invalid username or password.' });
     return;
