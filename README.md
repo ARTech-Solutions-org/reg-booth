@@ -1,111 +1,124 @@
-# EventPass — QR Registration, Check-In & Badge Printing System
+# EventPass — QR Registration, Entrance Kiosk & Badge Printing System
 
-An end-to-end event registration, on-site mobile QR scanning, and lanyard badge printing application. Built with React 19, TypeScript, Express, Tailwind CSS, ZXing, and QRCode.
+A modern, full-stack event registration and check-in system. Features online guest self-registration with downloadable digital QR passes, a dedicated distraction-free entrance kiosk terminal for rapid barcode scanning and walk-in badge printing, and an administrative control portal with real-time attendance telemetry.
 
 ---
 
 ## Key Features
 
-1. **Public-Facing Registration Flow (`/register`)**:
-   - Shareable link for attendees to register online.
-   - Collects Name, Email, Organization/Company, and Ticket Type.
-   - Instantly generates a unique, collision-resistant QR code pass.
-   - **Download Ticket**: Generates a high-resolution PNG digital pass formatted with the event banner, attendee name, ticket tier, and QR code to save to mobile camera roll or photos.
+### 1. Public Registration Flow (`/register`)
+- **Online Guest Sign-Up**: Public-facing registration form collecting Attendee Name, Email, Organization/Company, and Ticket Type.
+- **Instant QR Pass Generation**: Immediately generates an event credential pass upon submission.
+- **Pass Download**: Attendees can download a high-resolution digital pass formatted for smartphone camera rolls and apple/google wallet display.
 
-2. **Admin Entrance Station (`/admin`)**:
-   - Secured with organizer authentication (Default: `organizer` / `welcome123`).
-   - **Option A — Mobile Camera QR Scanner**:
-     - Dual-engine architecture:
-       - **Hardware-accelerated Native `BarcodeDetector`** for 60 FPS scanning on Android Chrome.
-       - **`@zxing/browser` + `BrowserMultiFormatReader`** with `TRY_HARDER: true` fallback for iOS Safari and other browsers.
-       - iOS-specific permission handling (`playsInline`, rear-camera constraints `facingMode: 'environment'`, tap-to-enable button).
-       - Haptic vibration feedback on successful scan.
-       - Instant status banner: Entry Approved (Green) / Duplicate Check-In (Amber) / Unrecognized (Red).
-       - **Print Badge Button**: Immediately visible upon scan completion.
-   - **Option B — Manual Walk-In Registration**:
-     - Rapid on-site registration form for guests who did not register online.
-     - Automatically creates attendee record and marks them as **checked in immediately**.
-     - Generates unique QR ID and displays instant **Print Badge** button.
+### 2. Entrance Kiosk Station (`/kiosk`)
+- **Dedicated Door Station**: Distraction-free, full-screen entrance interface designed for tablets or laptop desks at the venue entrance.
+- **Option A — Rapid QR Scanner**:
+  - Live camera scanner with high-performance detection.
+  - Instant verification feedback: *Entry Approved*, *Duplicate / Already Checked In*, or *Invalid Pass*.
+  - Large **Print Badge Now** action button for instant attendee badging.
+- **Option B — On-Site Walk-In**:
+  - Fast registration form for guests arriving without pre-registration.
+  - Automatically registers and marks them checked in on-site.
+- **Zero Distractions**: Hides admin telemetry and sensitive attendee roster data from guests standing at the desk.
 
-3. **Badge Printing System (Lanyard & Credential Ready)**:
-   - Formatted for standard 3" × 4" (76mm × 102mm) conference lanyard holders.
-   - Includes punch-hole alignment guide, event header, prominent attendee name, company affiliation, ticket tier badge (`VIP`, `SPEAKER`, `ATTENDEE`), and high-contrast centered QR code.
-   - Optimized `@media print` stylesheet isolates the badge card, hiding all web UI, backgrounds, and navigation for crisp printing to any thermal or standard printer.
+### 3. Badge Printing System
+- **Lanyard-Ready Format**: Formatted for standard 3" × 4" (76mm × 102mm) conference badges and credential pouches.
+- **Print Optimization**: Clean `@media print` stylesheet that isolates the badge card, hiding browser navigation, margins, and backgrounds for clean thermal or standard printer output.
+- **Color-Coded Tiers**: Distinct badge tier styling for VIP, Speaker, General Admission, Press, and Staff.
 
-4. **Live Board & Attendee Roster (`/admin/dashboard` & `/admin/attendees`)**:
-   - Real-time attendance percentage and counts (Total, Checked In, Pending).
-   - Searchable and filterable attendee roster with individual "Print Badge" and "Download Pass" actions on every row.
+### 4. Admin Operations Portal (`/admin`)
+- **Live Attendance Board (`/admin`)**: Real-time telemetry monitoring total registrations, arrivals, and percentage inside, along with a live feed of recent entries.
+- **Attendee Roster (`/admin/attendees`)**: Searchable, filterable list of all attendees with status indicators and on-demand badge reprinting.
+- **Organizer Authentication**: Secure login protecting administrative controls and rosters.
 
 ---
 
-## Quick Start & Operating Guide
+## Tech Stack
 
-### 1. Install & Run
-```bash
-# Navigate to project directory
-cd F:\ARTech\reg
-
-# Install dependencies (already completed)
-pnpm install
-
-# Build client and server
-pnpm run build
-
-# Start the unified server (port 8080)
-pnpm start
-```
-
-Once started, open your browser:
-- **Public Registration Portal**: `http://localhost:8080/register`
-- **Admin Entrance Check-In Station**: `http://localhost:8080/admin`
-  - Username: `organizer`
-  - Password: `welcome123`
-
-### 2. Mobile Browser Access (Android & iPhone)
-The server binds to `0.0.0.0:8080`. To access from a mobile device on the same local Wi-Fi network:
-1. Find your computer's local IP address (e.g. `ipconfig` -> `192.168.1.xxx`).
-2. Open `http://<YOUR-IP>:8080/admin` on your iPhone or Android browser.
-3. Allow camera permissions when prompted to scan attendee QR codes.
+- **Frontend**: React 19, TypeScript, Tailwind CSS, Vite, Lucide Icons, Wouter
+- **Scanner & QR**: ZXing, HTML5 Canvas QR engine, QRCode
+- **Backend**: Express 5, Node.js, TypeScript
+- **Database**: PostgreSQL (Neon Serverless Connection Pooling via `pg`)
+- **Deployment**: Vercel (Monolithic: Static SPA + Serverless Express API)
 
 ---
 
-## Architecture & Project Structure
+## Project Structure
 
 ```
-F:\ARTech\reg\
+├── api/                         # Vercel serverless function entrypoint
+│   └── index.ts                 # Express API serverless handler
 ├── src/
 │   ├── client/                  # Frontend (React 19, Vite, Tailwind CSS)
-│   │   ├── components/
-│   │   │   ├── BadgeCard.tsx    # Lanyard-ready 3"x4" physical badge component
-│   │   │   ├── PrintBadgeModal.tsx # Badge preview & print trigger modal
-│   │   │   └── ScannerView.tsx  # Mobile camera scanner (native BarcodeDetector + ZXing)
-│   │   ├── pages/
-│   │   │   ├── Register.tsx     # Public registration page & QR pass download
-│   │   │   ├── AdminCheckIn.tsx # Admin Option A (Scan) & Option B (Manual Walk-In)
-│   │   │   ├── Attendees.tsx    # Attendee roster with search, filter, badge printing
-│   │   │   ├── Dashboard.tsx    # Live telemetry and recent check-ins
-│   │   │   └── Login.tsx        # Organizer gatepass login
-│   │   ├── lib/
-│   │   │   ├── api.ts           # Type-safe API client
-│   │   │   └── qr-utils.ts      # QR generation & PNG ticket download logic
-│   │   ├── App.tsx              # Routing and navigation shell
-│   │   ├── main.tsx
-│   │   └── index.css            # Tailwind CSS & @media print badge styles
-│   ├── server/                  # Backend (Express 5, TypeScript)
-│   │   ├── db/
-│   │   │   └── index.ts         # Persistent data store (SQLite file-backed / JSON)
-│   │   ├── routes/
-│   │   │   ├── public.ts        # Public registration endpoints
-│   │   │   ├── attendees.ts     # Admin attendee management & walk-in registration
-│   │   │   ├── check-ins.ts     # QR check-in & duplicate detection
-│   │   │   ├── dashboard.ts     # Live summary statistics
-│   │   │   └── auth.ts          # Organizer session management
-│   │   ├── app.ts               # Express middleware & static client serving
-│   │   └── index.ts             # Server startup entrypoint
-├── data/                        # Persistent database store (data/event-data.json)
-├── dist/                        # Production client & server builds
-├── scripts/
-│   └── verify.js                # End-to-end flow test suite
+│   │   ├── components/          # BadgeCard, ScannerView, PrintBadgeModal
+│   │   ├── pages/               # Register, Kiosk, Dashboard, Attendees, Login
+│   │   ├── lib/                 # API client, QR pass utilities
+│   │   └── App.tsx              # Router & layout shell
+│   ├── server/                  # Backend Express application
+│   │   ├── db/                  # PostgreSQL connection pool & schema initialization
+│   │   ├── routes/              # Public, Attendees, Check-Ins, Dashboard, Auth
+│   │   ├── lib/                 # Authentication & session helpers
+│   │   └── app.ts               # Express application setup
+│   └── shared/                  # TypeScript types shared between client and server
+├── vercel.json                  # Vercel deployment & rewrite configuration
 ├── package.json
-└── vite.config.ts
+└── tsconfig.json
 ```
+
+---
+
+## Getting Started
+
+### Prerequisites
+- Node.js (v18+)
+- pnpm (or npm / yarn)
+- PostgreSQL database (e.g. Neon)
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Mohanned-Mahmoud/reg-booth.git
+   cd reg-booth
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   pnpm install
+   ```
+
+3. **Configure environment variables:**
+   Create a `.env` file in the project root:
+   ```env
+   DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
+   PORT=8080
+   SESSION_SECRET=your-secret-session-key
+   ORGANIZER_PASSWORD=welcome123
+   ```
+
+4. **Build and start the application:**
+   ```bash
+   # Build the production bundle
+   pnpm run build
+
+   # Start the server
+   pnpm start
+   ```
+
+5. **Open in browser:**
+   - **Public Registration**: `http://localhost:8080/register`
+   - **Entrance Kiosk**: `http://localhost:8080/kiosk`
+   - **Admin Portal**: `http://localhost:8080/admin` *(Default: `organizer` / `welcome123`)*
+
+---
+
+## Deployment to Vercel
+
+This repository is configured to deploy as a unified single project on Vercel:
+
+1. Import the repository into [Vercel](https://vercel.com/new).
+2. Configure **Environment Variables** in the Vercel project settings:
+   - `DATABASE_URL`: Your Neon PostgreSQL connection string.
+   - `SESSION_SECRET`: A secure random string for signing sessions.
+3. Click **Deploy**. Vercel will automatically build the frontend and serve both the static SPA and `/api/*` serverless routes under your domain.
