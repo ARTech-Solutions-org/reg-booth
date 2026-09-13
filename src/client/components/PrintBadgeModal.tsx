@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, Download, X, CheckCircle, Sparkles } from 'lucide-react';
+import { Printer, Download, X, Sparkles, RefreshCw } from 'lucide-react';
 import type { Attendee } from '../../shared/types.js';
 import { BadgeCard } from './BadgeCard.js';
-import { downloadAttendeeTicket } from '../lib/qr-utils.js';
+import { downloadAttendeeTicket, generateQrDataUrl } from '../lib/qr-utils.js';
 
 interface PrintBadgeModalProps {
   attendee: Attendee | null;
@@ -20,6 +20,9 @@ export function PrintBadgeModal({
   title = 'Print Event Badge',
   subtitle = 'Badge ready for lanyard or credential pocket',
 }: PrintBadgeModalProps) {
+  const [qrUrl, setQrUrl] = useState<string>('');
+  const [isQrReady, setIsQrReady] = useState(false);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) onClose();
@@ -28,9 +31,22 @@ export function PrintBadgeModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    if (attendee && isOpen) {
+      setIsQrReady(false);
+      generateQrDataUrl(attendee.qrId, 450)
+        .then((url) => {
+          setQrUrl(url);
+          setIsQrReady(true);
+        })
+        .catch(() => setIsQrReady(true));
+    }
+  }, [attendee?.qrId, isOpen]);
+
   if (!isOpen || !attendee) return null;
 
   const handlePrint = () => {
+    if (!isQrReady) return;
     window.print();
   };
 
@@ -68,17 +84,27 @@ export function PrintBadgeModal({
 
           {/* Live Badge Preview */}
           <div className="my-2 flex justify-center">
-            <BadgeCard attendee={attendee} />
+            <BadgeCard attendee={attendee} qrDataUrl={qrUrl} />
           </div>
 
           {/* Action Buttons */}
           <div className="mt-6 flex w-full flex-col sm:flex-row gap-3">
             <button
               onClick={handlePrint}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 px-5 py-3.5 text-base font-bold text-white shadow-sm transition active:scale-[0.98] cursor-pointer"
+              disabled={!isQrReady}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 px-5 py-3.5 text-base font-bold text-white shadow-sm transition active:scale-[0.98] cursor-pointer"
             >
-              <Printer className="h-5 w-5" />
-              Print Badge Now
+              {isQrReady ? (
+                <>
+                  <Printer className="h-5 w-5" />
+                  Print Badge Now
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                  Preparing Badge...
+                </>
+              )}
             </button>
             <button
               onClick={handleDownload}
@@ -98,9 +124,10 @@ export function PrintBadgeModal({
 
       {/* Dedicated Print Portal for @media print */}
       {typeof document !== 'undefined' &&
+        isOpen &&
         createPortal(
           <div id="print-badge-container">
-            <BadgeCard attendee={attendee} isPrintable={true} />
+            <BadgeCard attendee={attendee} isPrintable={true} qrDataUrl={qrUrl} />
           </div>,
           document.body
         )}

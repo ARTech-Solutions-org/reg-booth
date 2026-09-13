@@ -73,6 +73,14 @@ export function AdminCheckIn() {
       setWalkInError('Please enter the walk-in attendee name.');
       return;
     }
+    if (!walkInForm.company.trim()) {
+      setWalkInError('Please enter the organization or company.');
+      return;
+    }
+    if (!walkInForm.email.trim() || !walkInForm.email.includes('@')) {
+      setWalkInError('Please enter a valid email address.');
+      return;
+    }
 
     setIsSubmittingWalkIn(true);
     setWalkInError(null);
@@ -326,7 +334,7 @@ export function AdminCheckIn() {
               <form onSubmit={handleWalkInSubmit} className="space-y-4">
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-700">
-                    Full Name <span className="text-stone-400">*</span>
+                    Full Name <span className="text-rose-500 font-bold">*</span>
                   </label>
                   <div className="relative">
                     <User className="absolute left-3.5 top-3.5 h-4 w-4 text-stone-400" />
@@ -343,12 +351,13 @@ export function AdminCheckIn() {
 
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-700">
-                    Organization / Company
+                    Organization / Company <span className="text-rose-500 font-bold">*</span>
                   </label>
                   <div className="relative">
                     <Building className="absolute left-3.5 top-3.5 h-4 w-4 text-stone-400" />
                     <input
                       type="text"
+                      required
                       placeholder="e.g. Apex Tech Inc."
                       value={walkInForm.company}
                       onChange={(e) => setWalkInForm({ ...walkInForm, company: e.target.value })}
@@ -359,12 +368,13 @@ export function AdminCheckIn() {
 
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-700">
-                    Email Address (Optional)
+                    Email Address <span className="text-rose-500 font-bold">*</span>
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-stone-400" />
                     <input
                       type="email"
+                      required
                       placeholder="jordan@example.com"
                       value={walkInForm.email}
                       onChange={(e) => setWalkInForm({ ...walkInForm, email: e.target.value })}
@@ -375,11 +385,12 @@ export function AdminCheckIn() {
 
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-700">
-                    Ticket Type
+                    Ticket Type <span className="text-rose-500 font-bold">*</span>
                   </label>
                   <div className="relative">
                     <Ticket className="absolute left-3.5 top-3.5 h-4 w-4 text-stone-400" />
                     <select
+                      required
                       value={walkInForm.ticketType}
                       onChange={(e) => setWalkInForm({ ...walkInForm, ticketType: e.target.value })}
                       className="w-full rounded-xl border border-stone-300 bg-stone-50/50 pl-10 pr-4 py-3 text-sm text-slate-900 focus:border-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-stone-200 transition"

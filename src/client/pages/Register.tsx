@@ -22,6 +22,18 @@ export function Register() {
       setError('Please enter your full name.');
       return;
     }
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (!formData.company.trim()) {
+      setError('Please enter your organization or company.');
+      return;
+    }
+    if (!formData.ticketType.trim()) {
+      setError('Please select a ticket type.');
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
@@ -105,7 +117,7 @@ export function Register() {
                 {/* Full Name */}
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-700">
-                    Full Name <span className="text-stone-400">*</span>
+                    Full Name <span className="text-rose-500 font-bold">*</span>
                   </label>
                   <div className="relative">
                     <User className="absolute left-3.5 top-3.5 h-4 w-4 text-stone-400" />
@@ -123,12 +135,13 @@ export function Register() {
                 {/* Email */}
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-700">
-                    Email Address
+                    Email Address <span className="text-rose-500 font-bold">*</span>
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-stone-400" />
                     <input
                       type="email"
+                      required
                       placeholder="alex@example.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -140,12 +153,13 @@ export function Register() {
                 {/* Organization / Company */}
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-700">
-                    Organization / Company
+                    Organization / Company <span className="text-rose-500 font-bold">*</span>
                   </label>
                   <div className="relative">
                     <Building className="absolute left-3.5 top-3.5 h-4 w-4 text-stone-400" />
                     <input
                       type="text"
+                      required
                       placeholder="e.g. Acme Corp / Stanford University"
                       value={formData.company}
                       onChange={(e) => setFormData({ ...formData, company: e.target.value })}
@@ -157,11 +171,12 @@ export function Register() {
                 {/* Ticket Type */}
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-700">
-                    Ticket Type
+                    Ticket Type <span className="text-rose-500 font-bold">*</span>
                   </label>
                   <div className="relative">
                     <Ticket className="absolute left-3.5 top-3.5 h-4 w-4 text-stone-400" />
                     <select
+                      required
                       value={formData.ticketType}
                       onChange={(e) => setFormData({ ...formData, ticketType: e.target.value })}
                       className="w-full rounded-xl border border-stone-300 bg-stone-50/50 pl-10 pr-4 py-3 text-sm text-slate-900 focus:border-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-stone-200 transition"

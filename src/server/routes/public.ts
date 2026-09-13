@@ -12,11 +12,21 @@ router.post('/public/register', async (req, res): Promise<void> => {
     return;
   }
 
+  if (!email || typeof email !== 'string' || !email.trim() || !email.includes('@')) {
+    res.status(400).json({ error: 'A valid email address is required.' });
+    return;
+  }
+
+  if (!company || typeof company !== 'string' || !company.trim()) {
+    res.status(400).json({ error: 'Organization / Company is required.' });
+    return;
+  }
+
   try {
     const attendee = await db.createAttendee({
       name: name.trim(),
-      email: email && typeof email === 'string' ? email.trim() : null,
-      company: company && typeof company === 'string' ? company.trim() : null,
+      email: email.trim(),
+      company: company.trim(),
       ticketType: ticketType && typeof ticketType === 'string' ? ticketType.trim() : 'General',
       checkedIn: false,
     });

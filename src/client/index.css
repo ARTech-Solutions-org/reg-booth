@@ -22,11 +22,12 @@
 /* ==========================================================================
    BADGE PRINT STYLESHEET
    Ensures ONLY the active badge is printed, perfectly sized for 3" x 4" lanyards
+   and thermal / standard desktop printers without blank pages or UI artifacts.
    ========================================================================== */
 @media print {
   @page {
-    size: 3.25in 4.5in;
-    margin: 0;
+    size: auto;
+    margin: 0mm;
   }
 
   html, body {
@@ -34,37 +35,38 @@
     padding: 0 !important;
     background: #ffffff !important;
     color: #0f172a !important;
-    width: 100% !important;
-    height: 100% !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Hide all elements by default */
-  body > * {
+  /* Hide the entire React application shell during print */
+  #root {
     display: none !important;
   }
 
-  /* Show only the dedicated badge print container */
+  /* Dedicated badge print container portaled outside #root */
   #print-badge-container {
     display: flex !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
+    visibility: visible !important;
+    width: 100% !important;
+    min-height: 100vh !important;
     align-items: center !important;
     justify-content: center !important;
     background: #ffffff !important;
-    z-index: 999999 !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    padding: 10px 0 !important;
+    margin: 0 auto !important;
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+    break-after: avoid !important;
+    break-before: avoid !important;
   }
 
   #print-badge-container .badge-card-printable {
     box-shadow: none !important;
-    border: 1px solid #cbd5e1 !important;
+    border: 1.5px solid #94a3b8 !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }

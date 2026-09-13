@@ -29,11 +29,21 @@ router.post('/attendees/walk-in', async (req, res): Promise<void> => {
     return;
   }
 
+  if (!company || typeof company !== 'string' || !company.trim()) {
+    res.status(400).json({ error: 'Organization / Company is required.' });
+    return;
+  }
+
+  if (!email || typeof email !== 'string' || !email.trim() || !email.includes('@')) {
+    res.status(400).json({ error: 'A valid email address is required.' });
+    return;
+  }
+
   try {
     const attendee = await db.createAttendee({
       name: name.trim(),
-      email: email && typeof email === 'string' ? email.trim() : null,
-      company: company && typeof company === 'string' ? company.trim() : null,
+      email: email.trim(),
+      company: company.trim(),
       ticketType: ticketType && typeof ticketType === 'string' ? ticketType.trim() : 'General',
       checkedIn: true, // Walk-in is present on-site, immediately checked in!
     });
@@ -58,11 +68,21 @@ router.post('/attendees/create', requireOrganizer, async (req, res): Promise<voi
     return;
   }
 
+  if (!company || typeof company !== 'string' || !company.trim()) {
+    res.status(400).json({ error: 'Organization / Company is required.' });
+    return;
+  }
+
+  if (!email || typeof email !== 'string' || !email.trim() || !email.includes('@')) {
+    res.status(400).json({ error: 'A valid email address is required.' });
+    return;
+  }
+
   try {
     const attendee = await db.createAttendee({
       name: name.trim(),
-      email: email && typeof email === 'string' ? email.trim() : null,
-      company: company && typeof company === 'string' ? company.trim() : null,
+      email: email.trim(),
+      company: company.trim(),
       ticketType: ticketType && typeof ticketType === 'string' ? ticketType.trim() : 'General',
       qrId: qrId && typeof qrId === 'string' ? qrId.trim() : undefined,
       checkedIn: false,

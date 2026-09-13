@@ -6,16 +6,22 @@ interface BadgeCardProps {
   attendee: Attendee;
   eventName?: string;
   isPrintable?: boolean;
+  qrDataUrl?: string;
 }
 
 export function BadgeCard({
   attendee,
   eventName = 'Global Innovators Summit 2026',
   isPrintable = false,
+  qrDataUrl,
 }: BadgeCardProps) {
-  const [qrUrl, setQrUrl] = useState<string>('');
+  const [qrUrl, setQrUrl] = useState<string>(qrDataUrl || '');
 
   useEffect(() => {
+    if (qrDataUrl) {
+      setQrUrl(qrDataUrl);
+      return;
+    }
     let active = true;
     generateQrDataUrl(attendee.qrId, 450).then((url) => {
       if (active) setQrUrl(url);
@@ -23,7 +29,7 @@ export function BadgeCard({
     return () => {
       active = false;
     };
-  }, [attendee.qrId]);
+  }, [attendee.qrId, qrDataUrl]);
 
   const tier = attendee.ticketType.toLowerCase();
   const tierColor =
