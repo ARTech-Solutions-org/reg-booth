@@ -25,7 +25,7 @@ function mapRowToAttendee(row: any): Attendee {
   };
 }
 
-const DEFAULT_DATABASE_URL = 'postgresql://neondb_owner:npg_SwpcZsGgx6K1@ep-odd-hall-a5tabuwm-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+const DEFAULT_DATABASE_URL = 'postgresql://neondb_owner:npg_SwpcZsGgx6K1@ep-odd-hall-a5tabuwm-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require';
 
 class EventDatabase {
   private pool: pg.Pool | null = null;
@@ -39,9 +39,9 @@ class EventDatabase {
         ssl: {
           rejectUnauthorized: false,
         },
-        max: 10,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 15000,
+        max: 5,
+        idleTimeoutMillis: 10000,
+        connectionTimeoutMillis: 20000,
         keepAlive: true,
       });
 
