@@ -24,12 +24,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return appInstance(req, res);
   } catch (err: any) {
-    console.error('[Vercel Serverless Handler Error]:', err.message, err.stack);
+    const msg = err?.message || 'Unknown error';
+    console.error('[Vercel Serverless Handler Error]:', msg, err?.stack);
     // Expose full error so we can debug — remove after fix is confirmed
     res.status(500).json({
-      error: 'Internal Server Error',
-      message: err.message || 'An unexpected error occurred.',
-      detail: err.stack || null,
+      error: msg,
+      detail: err?.stack || null,
     });
   }
 }

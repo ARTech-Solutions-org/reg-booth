@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import pg from 'pg';
 import type { Attendee, DashboardSummary, CheckInResult } from '../../shared/types.js';
+import { hashPassword } from '../lib/auth.js';
 
 const { Pool } = pg;
 
@@ -85,7 +86,7 @@ class EventDatabase {
   private async _initInternal(): Promise<void> {
     const pool = this.getPool();
 
-    // 1. Create tables (badge_printed included for fresh DBs)
+    // 1. Create tables individually (multi-statement queries are unreliable in pg)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS attendees (
         id SERIAL PRIMARY KEY,
@@ -97,17 +98,19 @@ class EventDatabase {
         checked_in_at TIMESTAMPTZ,
         badge_printed BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMPTZ DEFAULT NOW()
-      );
+      )
+    `);
 
-      CREATE INDEX IF NOT EXISTS idx_attendees_qr_id ON attendees(qr_id);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_attendees_qr_id ON attendees(qr_id)`);
 
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS organizers (
         id SERIAL PRIMARY KEY,
         username VARCHAR(100) UNIQUE NOT NULL,
         display_name VARCHAR(255) NOT NULL,
         password_hash TEXT NOT NULL,
         created_at TIMESTAMPTZ DEFAULT NOW()
-      );
+      )
     `);
 
     // 1b. Safe migration: add badge_printed to existing DBs that pre-date this column
@@ -119,7 +122,6 @@ class EventDatabase {
     // 2. Seed organizer if table is empty
     const orgCheck = await pool.query('SELECT COUNT(*) FROM organizers');
     if (parseInt(orgCheck.rows[0].count, 10) === 0) {
-      const { hashPassword } = await import('../lib/auth.js');
       const defaultPassword = process.env.ORGANIZER_PASSWORD || 'welcome123';
       const passwordHash = await hashPassword(defaultPassword);
 
