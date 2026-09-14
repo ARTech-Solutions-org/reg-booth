@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Scan,
   UserPlus,
@@ -14,11 +15,14 @@ import {
   Check,
   Maximize,
   Minimize,
+  HelpCircle,
 } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { ScannerView } from '../components/ScannerView.js';
+import { BadgeCard } from '../components/BadgeCard.js';
 import { PrintBadgeModal } from '../components/PrintBadgeModal.js';
 import { useHardwareScanner, playScannerTone } from '../hooks/useHardwareScanner.js';
+import { generateQrDataUrl } from '../lib/qr-utils.js';
 import type { Attendee, CheckInResult } from '../../shared/types.js';
 
 export function Kiosk() {
@@ -28,6 +32,12 @@ export function Kiosk() {
   // Option A (Scan) States
   const [isProcessingScan, setIsProcessingScan] = useState(false);
   const [scanResult, setScanResult] = useState<CheckInResult | null>(null);
+
+  // Auto-Print & Instant Badge Dispatch States
+  const [activePrintingAttendee, setActivePrintingAttendee] = useState<Attendee | null>(null);
+  const [printQrDataUrl, setPrintQrDataUrl] = useState<string>('');
+  const [autoReturnCountdown, setAutoReturnCountdown] = useState<number | null>(null);
+  const autoReturnTimerRef = useRef<any>(null);
 
   // Option B (Manual Walk-In) States
   const [walkInForm, setWalkInForm] = useState({
@@ -40,9 +50,16 @@ export function Kiosk() {
   const [walkInResult, setWalkInResult] = useState<Attendee | null>(null);
   const [walkInError, setWalkInError] = useState<string | null>(null);
 
-  // Badge Print Modal State
+  // Badge Print Modal State (for manual walk-in or reprints)
   const [badgeAttendee, setBadgeAttendee] = useState<Attendee | null>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+
+  // Clean up auto-return timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoReturnTimerRef.current) clearInterval(autoReturnTimerRef.current);
+    };
+  }, []);
 
   // Toggle Fullscreen
   const toggleFullscreen = () => {
@@ -58,6 +75,26 @@ export function Kiosk() {
   // Synchronous lock to prevent parallel network requests from duplicate key events
   const isScanningRef = useRef(false);
 
+  // Trigger instant silent print or window.print with zero clicks
+  const triggerInstantPrint = async (attendee: Attendee) => {
+    try {
+      const qr = await generateQrDataUrl(attendee.qrId, 450);
+      setPrintQrDataUrl(qr);
+      setActivePrintingAttendee(attendee);
+
+      // Brief tick to allow createPortal to render into document.body
+      setTimeout(() => {
+        if ((window as any).electronAPI && typeof (window as any).electronAPI.silentPrint === 'function') {
+          (window as any).electronAPI.silentPrint();
+        } else {
+          window.print();
+        }
+      }, 140);
+    } catch (err) {
+      console.error('Instant badge auto-print failed:', err);
+    }
+  };
+
   // =========================================================================
   // Option A Handlers & Global Hardware Scanner
   // =========================================================================
@@ -66,13 +103,59 @@ export function Kiosk() {
     isScanningRef.current = true;
     setIsProcessingScan(true);
 
+    // Clear any previous countdown
+    if (autoReturnTimerRef.current) clearInterval(autoReturnTimerRef.current);
+    setAutoReturnCountdown(null);
+
     try {
       const result = await api.checkIn(qrId);
       setScanResult(result);
-      if (result.status === 'valid') {
+
+      if (result.status === 'valid' && result.attendee) {
         playScannerTone('success');
+        // Instantly trigger silent print with zero intermediate clicks
+        await triggerInstantPrint(result.attendee);
+
+        // 4-second auto-reset countdown to return to scanner
+        setAutoReturnCountdown(4);
+        autoReturnTimerRef.current = setInterval(() => {
+          setAutoReturnCountdown((prev) => {
+            if (prev === null || prev <= 1) {
+              clearInterval(autoReturnTimerRef.current);
+              resetScan();
+              return null;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else if (result.status === 'duplicate') {
+        playScannerTone('warning');
+        // 6-second auto-reset countdown so the station is ready for next attendee
+        setAutoReturnCountdown(6);
+        autoReturnTimerRef.current = setInterval(() => {
+          setAutoReturnCountdown((prev) => {
+            if (prev === null || prev <= 1) {
+              clearInterval(autoReturnTimerRef.current);
+              resetScan();
+              return null;
+            }
+            return prev - 1;
+          });
+        }, 1000);
       } else {
         playScannerTone('warning');
+        // 5-second countdown for unrecognized pass
+        setAutoReturnCountdown(5);
+        autoReturnTimerRef.current = setInterval(() => {
+          setAutoReturnCountdown((prev) => {
+            if (prev === null || prev <= 1) {
+              clearInterval(autoReturnTimerRef.current);
+              resetScan();
+              return null;
+            }
+            return prev - 1;
+          });
+        }, 1000);
       }
     } catch (err: any) {
       playScannerTone('warning');
@@ -81,6 +164,17 @@ export function Kiosk() {
         message: err.message || 'Check-in request failed. Please try again.',
         attendee: null,
       });
+      setAutoReturnCountdown(5);
+      autoReturnTimerRef.current = setInterval(() => {
+        setAutoReturnCountdown((prev) => {
+          if (prev === null || prev <= 1) {
+            clearInterval(autoReturnTimerRef.current);
+            resetScan();
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     } finally {
       setIsProcessingScan(false);
       setTimeout(() => {
@@ -99,7 +193,11 @@ export function Kiosk() {
   });
 
   const resetScan = () => {
+    if (autoReturnTimerRef.current) clearInterval(autoReturnTimerRef.current);
+    setAutoReturnCountdown(null);
     setScanResult(null);
+    setActivePrintingAttendee(null);
+    setPrintQrDataUrl('');
   };
 
   // =========================================================================
@@ -244,62 +342,102 @@ export function Kiosk() {
 
                 <ScannerView onScan={handleScan} isProcessing={isProcessingScan} />
               </div>
-            ) : (
-              /* Outcome Card */
-              <div
-                className={`glossy-panel rounded-3xl p-6 sm:p-8 transition-all animate-in fade-in zoom-in-95 duration-200 ${
-                  scanResult.status === 'valid'
-                    ? 'border-emerald-500/40 shadow-emerald-950/30'
-                    : scanResult.status === 'duplicate'
-                    ? 'border-amber-500/40 shadow-amber-950/30'
-                    : 'border-rose-500/40 shadow-rose-950/30'
-                }`}
-              >
+            ) : scanResult.status === 'valid' && scanResult.attendee ? (
+              /* =============================================================
+                 1. ACTIVE PRINTING SCREEN (Instant Silent Auto-Print on Scan)
+                 ============================================================= */
+              <div className="glossy-panel rounded-3xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200 border border-white/20 shadow-2xl">
                 <div className="flex flex-col items-center text-center">
-                  <div
-                    className={`flex h-16 w-16 items-center justify-center rounded-2xl mb-3 border ${
-                      scanResult.status === 'valid'
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
-                        : scanResult.status === 'duplicate'
-                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
-                        : 'bg-rose-500/10 text-rose-400 border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.2)]'
-                    }`}
-                  >
-                    {scanResult.status === 'valid' ? (
-                      <CheckCircle2 className="h-9 w-9" />
-                    ) : scanResult.status === 'duplicate' ? (
-                      <AlertCircle className="h-9 w-9" />
-                    ) : (
-                      <XCircle className="h-9 w-9" />
-                    )}
+                  {/* Animated Printer Icon with Specular Ring */}
+                  <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-white text-black mb-4 shadow-[0_0_35px_rgba(255,255,255,0.35)]">
+                    <Printer className="h-10 w-10 animate-bounce" />
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500"></span>
+                    </span>
                   </div>
 
-                  <span
-                    className={`font-mono text-xs font-bold uppercase tracking-[0.25em] ${
-                      scanResult.status === 'valid'
-                        ? 'text-emerald-400'
-                        : scanResult.status === 'duplicate'
-                        ? 'text-amber-400'
-                        : 'text-rose-400'
-                    }`}
-                  >
-                    {scanResult.status === 'valid'
-                      ? 'Entry Approved'
-                      : scanResult.status === 'duplicate'
-                      ? 'Already Checked In'
-                      : 'Invalid Pass'}
-                  </span>
-                  <h2 className="mt-1 text-3xl font-extrabold tracking-tight text-white">
-                    {scanResult.status === 'valid'
-                      ? 'Check-In Complete!'
-                      : scanResult.status === 'duplicate'
-                      ? 'Pass Already Used'
-                      : 'Pass Not Found'}
+                  <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1 text-xs font-mono font-bold uppercase tracking-widest text-emerald-400 mb-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Printing In Progress
+                  </div>
+
+                  <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white uppercase font-display">
+                    Printing Your Badge...
                   </h2>
+                  <p className="mt-1.5 text-sm text-stone-300 max-w-md">
+                    Your official event credential is being printed automatically. Please collect it from the badge dispenser.
+                  </p>
+
+                  {/* Attendee Details Card */}
+                  <div className="glossy-card mt-6 w-full rounded-2xl p-5 text-left border border-white/10">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-2xl font-bold text-white tracking-tight">
+                          {scanResult.attendee.name}
+                        </div>
+                        {scanResult.attendee.company && (
+                          <div className="text-sm font-medium text-stone-400 mt-0.5">
+                            {scanResult.attendee.company}
+                          </div>
+                        )}
+                      </div>
+                      <span className="rounded-md px-3.5 py-1 font-mono text-xs font-black uppercase tracking-widest bg-white text-black border border-white">
+                        {scanResult.attendee.ticketType} ACCESS
+                      </span>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-stone-400 font-mono">
+                      <span>Pass ID: {scanResult.attendee.qrId}</span>
+                      <span className="text-emerald-400 font-bold">Authorized & Dispatched</span>
+                    </div>
+                  </div>
+
+                  {/* Countdown & Progress bar */}
+                  <div className="mt-6 w-full flex flex-col items-center gap-2">
+                    <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-white h-full rounded-full transition-all duration-1000 ease-linear"
+                        style={{ width: `${((autoReturnCountdown ?? 4) / 4) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-mono text-stone-400">
+                      Ready for next guest in {autoReturnCountdown ?? 0}s...
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={resetScan}
+                    className="glossy-btn-dark mt-4 flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-semibold text-stone-300 hover:text-white cursor-pointer"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Scan Next Guest Immediately
+                  </button>
+                </div>
+              </div>
+            ) : scanResult.status === 'duplicate' ? (
+              /* =============================================================
+                 2. DUPLICATE PASS / ALREADY PRINTED SCREEN
+                 ============================================================= */
+              <div className="glossy-panel rounded-3xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200 border border-amber-500/40 shadow-amber-950/30">
+                <div className="flex flex-col items-center text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.2)] mb-3">
+                    <AlertCircle className="h-9 w-9" />
+                  </div>
+
+                  <span className="font-mono text-xs font-bold uppercase tracking-[0.25em] text-amber-400">
+                    Credential Already Issued
+                  </span>
+                  <h2 className="mt-1 text-3xl font-extrabold tracking-tight text-white font-display">
+                    Badge Already Printed
+                  </h2>
+                  <p className="mt-1.5 text-sm text-stone-300 max-w-md">
+                    This attendee pass has already been scanned and its official credential was previously printed.
+                  </p>
 
                   {/* Attendee Details */}
-                  {scanResult.attendee ? (
-                    <div className="glossy-card mt-6 w-full rounded-2xl p-5 text-left border border-white/10">
+                  {scanResult.attendee && (
+                    <div className="glossy-card mt-5 w-full rounded-2xl p-5 text-left border border-white/10">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="text-2xl font-bold text-white tracking-tight">
@@ -311,57 +449,105 @@ export function Kiosk() {
                             </div>
                           )}
                         </div>
-                        <span
-                          className={`rounded-md px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider border ${
-                            scanResult.attendee.ticketType.toLowerCase() === 'vip'
-                              ? 'bg-white text-slate-950 border-white shadow-xs font-black'
-                              : scanResult.attendee.ticketType.toLowerCase() === 'speaker'
-                              ? 'bg-white/15 text-white border-white/25'
-                              : scanResult.attendee.ticketType.toLowerCase() === 'press'
-                              ? 'bg-white/10 text-stone-300 border-white/20'
-                              : 'bg-stone-800 text-stone-200 border-stone-700'
-                          }`}
-                        >
+                        <span className="rounded-md px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider border border-white/20 text-stone-300 bg-white/5">
                           {scanResult.attendee.ticketType} Pass
                         </span>
                       </div>
 
                       <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-stone-400 font-mono">
                         <span>Pass ID: {scanResult.attendee.qrId}</span>
-                        <span>
-                          {scanResult.status === 'valid' ? 'Checked in just now' : 'Previous check-in'}
-                        </span>
+                        <span className="text-amber-400 font-bold">Previously Checked In</span>
                       </div>
                     </div>
-                  ) : (
-                    <p className="mt-4 max-w-sm text-sm text-stone-300">{scanResult.message}</p>
                   )}
+
+                  {/* Dedicated Event Support Help Box */}
+                  <div className="mt-5 w-full rounded-2xl border border-white/15 bg-white/[0.04] p-4 text-left backdrop-blur-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white mt-0.5">
+                        <HelpCircle className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white uppercase tracking-wide">
+                          Need a Replacement Badge?
+                        </h4>
+                        <p className="mt-1 text-xs leading-relaxed text-stone-300">
+                          If you have misplaced your printed badge or believe this is an error, please visit the <b>ARTECH Event Support & Help Desk</b> for staff assistance and badge re-issuance.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Action Buttons */}
                   <div className="mt-6 flex flex-col sm:flex-row items-center gap-3 w-full">
-                    {scanResult.attendee && (
-                      <button
-                        onClick={() => openBadgePrint(scanResult.attendee!)}
-                        className="glossy-btn-white flex-1 flex items-center justify-center gap-2.5 rounded-2xl px-6 py-3.5 text-base font-bold shadow-md cursor-pointer"
-                      >
-                        <Printer className="h-5 w-5" />
-                        Print Official Badge
-                      </button>
-                    )}
                     <button
                       onClick={resetScan}
-                      className="glossy-btn-dark flex-1 flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-base font-semibold cursor-pointer"
+                      className="glossy-btn-white flex-1 flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-base font-bold shadow-md cursor-pointer"
                     >
                       <RotateCcw className="h-4 w-4" />
-                      Scan Next Attendee
+                      Scan Next Pass
                     </button>
                   </div>
 
-                  {/* Live Handheld Scanner Status Banner */}
-                  <div className="glossy-card mt-4 flex items-center justify-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold text-stone-300 border border-white/10">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Scanner active — point at next badge to check in hands-free</span>
+                  {autoReturnCountdown !== null && (
+                    <span className="mt-3 text-xs font-mono text-stone-400">
+                      Returning to scanner in {autoReturnCountdown}s...
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* =============================================================
+                 3. UNRECOGNIZED PASS / INVALID SCREEN
+                 ============================================================= */
+              <div className="glossy-panel rounded-3xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200 border border-rose-500/40 shadow-rose-950/30">
+                <div className="flex flex-col items-center text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.2)] mb-3">
+                    <XCircle className="h-9 w-9" />
                   </div>
+
+                  <span className="font-mono text-xs font-bold uppercase tracking-[0.25em] text-rose-400">
+                    Unrecognized Credential
+                  </span>
+                  <h2 className="mt-1 text-3xl font-extrabold tracking-tight text-white font-display">
+                    Pass Not Found
+                  </h2>
+                  <p className="mt-1.5 text-sm text-stone-300 max-w-md">
+                    This QR code is not registered for ARTECH • LIVE THE EXPERIENCE.
+                  </p>
+
+                  {/* Dedicated Event Support Help Box */}
+                  <div className="mt-5 w-full rounded-2xl border border-white/15 bg-white/[0.04] p-4 text-left backdrop-blur-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white mt-0.5">
+                        <HelpCircle className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white uppercase tracking-wide">
+                          Assistance Required
+                        </h4>
+                        <p className="mt-1 text-xs leading-relaxed text-stone-300">
+                          Please proceed to the <b>ARTECH Event Registration & Support Desk</b> to verify your invitation or complete an on-site registration.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex items-center gap-3 w-full">
+                    <button
+                      onClick={resetScan}
+                      className="glossy-btn-white flex-1 flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-base font-bold shadow-md cursor-pointer"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Scan Next Pass
+                    </button>
+                  </div>
+
+                  {autoReturnCountdown !== null && (
+                    <span className="mt-3 text-xs font-mono text-stone-400">
+                      Returning to scanner in {autoReturnCountdown}s...
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -544,12 +730,20 @@ export function Kiosk() {
         ARTECH • LIVE THE EXPERIENCE • Entrance Terminal Station
       </footer>
 
-      {/* Embedded Badge Printing Modal */}
+      {/* Embedded Badge Printing Modal (for manual walk-in or reprints) */}
       <PrintBadgeModal
         attendee={badgeAttendee}
         isOpen={isPrintModalOpen}
         onClose={() => setIsPrintModalOpen(false)}
       />
+
+      {/* Hidden Portal for Instant / Silent Badge Printing on Scan */}
+      {typeof document !== 'undefined' && activePrintingAttendee && createPortal(
+        <div id="print-badge-container">
+          <BadgeCard attendee={activePrintingAttendee} isPrintable={true} qrDataUrl={printQrDataUrl} />
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

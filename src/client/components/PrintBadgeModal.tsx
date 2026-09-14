@@ -47,7 +47,11 @@ export function PrintBadgeModal({
 
   const handlePrint = () => {
     if (!isQrReady) return;
-    window.print();
+    if ((window as any).electronAPI && typeof (window as any).electronAPI.silentPrint === 'function') {
+      (window as any).electronAPI.silentPrint();
+    } else {
+      window.print();
+    }
   };
 
   const handleDownload = () => {

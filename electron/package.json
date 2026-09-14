@@ -1,0 +1,6 @@
+{
+  "name": "artech-station-electron",
+  "version": "1.0.0",
+  "description": "Standalone Kiosk & Silent Printing Wrapper for ARTECH Station",
+  "main": "main.js"
+}

@@ -4,6 +4,8 @@ node_modules/
 
 # Production build output
 dist/
+build/
+release/
 
 # Environment files
 .env

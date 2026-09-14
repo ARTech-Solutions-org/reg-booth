@@ -120,7 +120,11 @@
    BADGE PRINT STYLESHEET
    Ensures ONLY the active badge is printed, perfectly sized for 3" x 4" lanyards
    and thermal / standard desktop printers without blank pages or UI artifacts.
-   ========================================================================== */
+/* Hide print container during normal screen viewing */
+#print-badge-container {
+  display: none;
+}
+
 @media print {
   @page {
     size: auto;
