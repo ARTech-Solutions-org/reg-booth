@@ -274,7 +274,7 @@ export function ScannerView({ onScan, isProcessing = false }: ScannerViewProps) 
               Point Scanner Gun & Pull Trigger
             </h3>
             <p className="mt-1.5 text-xs text-stone-600 max-w-xs leading-relaxed">
-              وجه جهاز السكانر نحو كود الـ QR الخاص بالزائر واضغط الزناد، وسيتم تسجيل الدخول فوراً وبدون لمس الماوس.
+              Aim the handheld scanner at the attendee QR pass to check in instantly.
             </p>
 
             {lastScanned && (
