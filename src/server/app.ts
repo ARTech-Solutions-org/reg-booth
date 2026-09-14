@@ -3,11 +3,16 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import path from 'node:path';
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import publicRouter from './routes/public.js';
 import authRouter from './routes/auth.js';
 import attendeesRouter from './routes/attendees.js';
 import checkInsRouter from './routes/check-ins.js';
 import dashboardRouter from './routes/dashboard.js';
+
+// ESM-compatible __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export function createApp(): Express {
   const app = express();
