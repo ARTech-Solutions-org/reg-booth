@@ -33,8 +33,24 @@ export function createApp(): Express {
   app.use('/api', dashboardRouter);
 
   // Serve production client build if dist folder exists
-  const clientDist = path.resolve(process.cwd(), 'dist');
-  if (fs.existsSync(clientDist)) {
+  const possibleDistDirs = [
+    process.env.CLIENT_DIST,
+    path.resolve(process.cwd(), 'dist'),
+    path.resolve(process.cwd(), 'resources', 'app', 'dist'),
+    path.join(__dirname, '..', 'dist'),
+    path.join(__dirname, 'dist'),
+  ].filter(Boolean) as string[];
+
+  const clientDist = possibleDistDirs.find(d => {
+    try {
+      return fs.existsSync(d) && fs.existsSync(path.join(d, 'index.html'));
+    } catch {
+      return false;
+    }
+  });
+
+  if (clientDist) {
+    console.log(`[Event Server] Serving static client build from: ${clientDist}`);
     app.use(express.static(clientDist));
     app.get('*', (req, res, next) => {
       if (req.path.startsWith('/api')) {
@@ -42,6 +58,8 @@ export function createApp(): Express {
       }
       res.sendFile(path.join(clientDist, 'index.html'));
     });
+  } else {
+    console.warn('[Event Server] No client dist folder found. API routes available only.');
   }
 
   return app;

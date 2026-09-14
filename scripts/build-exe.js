@@ -14,10 +14,15 @@ console.log('====================================================');
 console.log('  ARTECH Station Desktop EXE Builder (win32-x64)    ');
 console.log('====================================================');
 
-// 1. Build Client and Server bundles
-console.log('\n[1/4] Building production web bundles...');
+// 1. Build Client and Standalone Server bundles
+console.log('\n[1/4] Building production web bundles & standalone server...');
 execSync('npm run build:client', { cwd: rootDir, stdio: 'inherit' });
-execSync('npm run build:server', { cwd: rootDir, stdio: 'inherit' });
+
+const esbuildBin = path.join(rootDir, 'node_modules', 'esbuild', 'bin', 'esbuild');
+execSync(`node "${esbuildBin}" src/server/index.ts --platform=node --bundle --format=cjs --outfile=build/server/server.cjs --external:pg-native`, {
+  cwd: rootDir,
+  stdio: 'inherit'
+});
 
 // 2. Prepare Output Directory
 console.log(`\n[2/4] Initializing output directory: ${outputDir}`);
@@ -32,7 +37,7 @@ fs.mkdirSync(outputDir, { recursive: true });
 console.log('Copying Electron runtime binaries...');
 const templateFiles = fs.readdirSync(templateDir);
 for (const file of templateFiles) {
-  if (file === 'resources' || file.endsWith('.py') || file.endsWith('.js')) continue;
+  if (file === 'resources' || file.endsWith('.py') || file.endsWith('.js') || file === 'app-extracted') continue;
   const src = path.join(templateDir, file);
   let destFileName = file;
   if (file === 'Talabat-Mart-Booth.exe') {
@@ -67,9 +72,30 @@ fs.copyFileSync(path.join(rootDir, 'electron', 'package.json'), path.join(appDir
 const distTarget = path.join(appDir, 'dist');
 fs.cpSync(path.join(rootDir, 'dist'), distTarget, { recursive: true });
 
-// Copy server bundle
-const serverTarget = path.join(appDir, 'server');
-fs.cpSync(path.join(rootDir, 'build', 'server'), serverTarget, { recursive: true });
+// Copy standalone server bundle
+const serverTargetDir = path.join(appDir, 'server');
+fs.mkdirSync(serverTargetDir, { recursive: true });
+fs.copyFileSync(
+  path.join(rootDir, 'build', 'server', 'server.cjs'),
+  path.join(serverTargetDir, 'server.cjs')
+);
+
+// Copy .env for database credentials
+const rootEnv = path.join(rootDir, '.env');
+if (fs.existsSync(rootEnv)) {
+  fs.copyFileSync(rootEnv, path.join(appDir, '.env'));
+  fs.copyFileSync(rootEnv, path.join(outputDir, '.env'));
+  console.log('Copied .env configuration to app package.');
+}
+
+// Pack resources/app into resources/app.asar
+console.log('Packaging resources/app into resources/app.asar...');
+const asarTarget = path.join(resourcesDir, 'app.asar');
+execSync(`npx @electron/asar pack "${appDir}" "${asarTarget}"`, {
+  cwd: rootDir,
+  stdio: 'inherit'
+});
+console.log('Packed app.asar successfully.');
 
 // 4. Create Station Config next to the .exe
 console.log('\n[4/4] Generating station-config.json...');
@@ -78,7 +104,7 @@ const configContent = {
   kiosk: true,
   fullscreen: true,
   printerDeviceName: '',
-  notes: 'Set printerDeviceName to your thermal badge printer name (e.g. Zebra, Brother, Epson) or leave empty for auto-detection.'
+  notes: 'Set printerDeviceName to your thermal badge printer name (e.g. Zebra, Brother, Epson) or leave empty for auto-detection. Set kiosk: false to run in a window during setup.'
 };
 
 fs.writeFileSync(

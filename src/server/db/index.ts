@@ -42,7 +42,7 @@ class EventDatabase {
         },
         max: 10,
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000,
+        connectionTimeoutMillis: 15000,
       });
 
       this.pool.on('error', (err) => {
@@ -54,7 +54,10 @@ class EventDatabase {
 
   public async init(): Promise<void> {
     if (!this.initPromise) {
-      this.initPromise = this._initInternal();
+      this.initPromise = this._initInternal().catch((err) => {
+        this.initPromise = null;
+        throw err;
+      });
     }
     return this.initPromise;
   }
