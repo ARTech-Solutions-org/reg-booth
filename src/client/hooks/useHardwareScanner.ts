@@ -115,6 +115,20 @@ export function playScannerTone(type: 'success' | 'warning' | 'beep') {
   }
 }
 
+// Module-level deduplication guard: Prevents multiple mounted listeners or rapid burst triggers from firing duplicate API calls
+let lastGlobalScanTime = 0;
+let lastGlobalScanCode = '';
+
+export function canProcessGlobalScan(code: string, minIntervalMs = 1500): boolean {
+  const now = Date.now();
+  if (code === lastGlobalScanCode && now - lastGlobalScanTime < minIntervalMs) {
+    return false;
+  }
+  lastGlobalScanTime = now;
+  lastGlobalScanCode = code;
+  return true;
+}
+
 interface UseHardwareScannerOptions {
   onScan: (qrCode: string) => void;
   enabled?: boolean;
@@ -183,6 +197,9 @@ export function useHardwareScanner({
             clearTimeout(timerRef.current);
 
             if (fullCode.length >= minChars) {
+              if (!canProcessGlobalScan(fullCode)) {
+                return;
+              }
               setLastScanned(fullCode);
               setIsScanning(true);
               playScannerTone('beep');
@@ -223,6 +240,9 @@ export function useHardwareScanner({
             const fullCode = buf.map((b) => b.char).join('').trim();
             bufferRef.current = [];
             if (fullCode.length >= minChars) {
+              if (!canProcessGlobalScan(fullCode)) {
+                return;
+              }
               setLastScanned(fullCode);
               setIsScanning(true);
               playScannerTone('beep');

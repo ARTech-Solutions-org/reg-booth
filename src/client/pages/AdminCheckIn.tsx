@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Scan,
   UserPlus,
@@ -41,11 +41,17 @@ export function AdminCheckIn() {
   const [badgeAttendee, setBadgeAttendee] = useState<Attendee | null>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
+  // Synchronous lock to prevent parallel network requests from duplicate key events
+  const isScanningRef = useRef(false);
+
   // =========================================================================
   // Option A Handlers & Global Hardware Scanner
   // =========================================================================
   const handleScan = async (qrId: string) => {
+    if (isScanningRef.current || isProcessingScan) return;
+    isScanningRef.current = true;
     setIsProcessingScan(true);
+
     try {
       const result = await api.checkIn(qrId);
       setScanResult(result);
@@ -63,6 +69,9 @@ export function AdminCheckIn() {
       });
     } finally {
       setIsProcessingScan(false);
+      setTimeout(() => {
+        isScanningRef.current = false;
+      }, 1000);
     }
   };
 
@@ -476,7 +485,7 @@ export function AdminCheckIn() {
 
                   <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-stone-400 font-mono">
                     <span>Generated Pass: {walkInResult.qrId}</span>
-                    <span className="text-white font-bold">Checked In Just Now</span>
+                    <span className="text-emerald-400 font-bold">Pass Generated & Ready</span>
                   </div>
                 </div>
 

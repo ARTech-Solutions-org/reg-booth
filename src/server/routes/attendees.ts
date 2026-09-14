@@ -22,7 +22,7 @@ router.get('/attendees', requireOrganizer, async (req, res): Promise<void> => {
 
 // Admin walk-in on-site registration (Immediately marks checked in + returns QR ID for badge printing)
 router.post('/attendees/walk-in', async (req, res): Promise<void> => {
-  const { name, email, company, ticketType } = req.body;
+  const { name, email, company, ticketType, autoCheckIn } = req.body;
 
   if (!name || typeof name !== 'string' || !name.trim()) {
     res.status(400).json({ error: 'Name is required for walk-in attendee.' });
@@ -45,12 +45,12 @@ router.post('/attendees/walk-in', async (req, res): Promise<void> => {
       email: email.trim(),
       company: company.trim(),
       ticketType: ticketType && typeof ticketType === 'string' ? ticketType.trim() : 'General',
-      checkedIn: true, // Walk-in is present on-site, immediately checked in!
+      checkedIn: autoCheckIn === true, // Default to false so attendee pass can be scanned at the entrance scanner gun
     });
 
     res.status(201).json({
       status: 'valid',
-      message: `Walk-in registration complete! ${attendee.name} is checked in.`,
+      message: `Walk-in registration complete! ${attendee.name}'s pass is ready.`,
       attendee,
     });
   } catch (err: any) {

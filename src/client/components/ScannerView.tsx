@@ -16,9 +16,14 @@ import { useHardwareScanner } from '../hooks/useHardwareScanner.js';
 interface ScannerViewProps {
   onScan: (qrId: string) => void;
   isProcessing?: boolean;
+  enableHardwareScanner?: boolean;
 }
 
-export function ScannerView({ onScan, isProcessing = false }: ScannerViewProps) {
+export function ScannerView({
+  onScan,
+  isProcessing = false,
+  enableHardwareScanner = false,
+}: ScannerViewProps) {
   const [mode, setMode] = useState<'hardware' | 'camera'>('hardware');
   const [cameraState, setCameraState] = useState<'starting' | 'ready' | 'denied' | 'unsupported'>('starting');
   const [manualQr, setManualQr] = useState('');
@@ -31,12 +36,12 @@ export function ScannerView({ onScan, isProcessing = false }: ScannerViewProps) 
   const zxingControlsRef = useRef<any>(null);
   const scanLockedRef = useRef(false);
 
-  // Global hardware scanner listener
+  // Optional internal hardware listener (disabled by default because parent pages manage global hardware scanning)
   const { isScanning: isHardwareScanning, lastScanned } = useHardwareScanner({
     onScan: (code) => {
       handleDetectedCode(code);
     },
-    enabled: true,
+    enabled: enableHardwareScanner,
   });
 
   const handleDetectedCode = (code: string) => {
