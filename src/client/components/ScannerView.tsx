@@ -199,17 +199,17 @@ export function ScannerView({ onScan, isProcessing = false }: ScannerViewProps) 
   return (
     <div className="flex flex-col items-center w-full max-w-lg mx-auto">
       {/* Mode Switcher: Handheld Scanner (Primary) vs Webcam Camera */}
-      <div className="flex items-center justify-center gap-1.5 p-1 mb-4 rounded-xl bg-stone-100/90 border border-stone-200 text-xs font-semibold">
+      <div className="flex items-center justify-center gap-1.5 p-1 mb-4 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold">
         <button
           type="button"
           onClick={() => setMode('hardware')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition cursor-pointer ${
             mode === 'hardware'
-              ? 'bg-white text-slate-900 shadow-xs font-bold'
-              : 'text-stone-600 hover:text-slate-900'
+              ? 'glossy-btn-white text-slate-950 shadow-xs font-bold'
+              : 'text-stone-400 hover:text-white'
           }`}
         >
-          <Scan className="h-3.5 w-3.5 text-emerald-600" />
+          <Scan className="h-3.5 w-3.5" />
           <span>USB / Handheld Scanner (Active)</span>
         </button>
         <button
@@ -217,8 +217,8 @@ export function ScannerView({ onScan, isProcessing = false }: ScannerViewProps) 
           onClick={() => setMode('camera')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition cursor-pointer ${
             mode === 'camera'
-              ? 'bg-white text-slate-900 shadow-xs font-bold'
-              : 'text-stone-500 hover:text-slate-800'
+              ? 'glossy-btn-white text-slate-950 shadow-xs font-bold'
+              : 'text-stone-400 hover:text-white'
           }`}
         >
           <Camera className="h-3.5 w-3.5" />
@@ -231,55 +231,52 @@ export function ScannerView({ onScan, isProcessing = false }: ScannerViewProps) 
           =================================================================== */}
       {mode === 'hardware' && (
         <div
-          className={`relative w-full rounded-3xl border-2 transition-all p-8 flex flex-col items-center justify-center text-center overflow-hidden min-h-[320px] ${
+          className={`relative w-full rounded-3xl border transition-all p-8 flex flex-col items-center justify-center text-center overflow-hidden min-h-[320px] ${
             isHardwareScanning || isProcessing
-              ? 'border-emerald-500 bg-emerald-50/40 shadow-md'
-              : 'border-stone-300/90 bg-gradient-to-b from-stone-50/80 to-white shadow-xs'
+              ? 'border-white/40 bg-white/10 shadow-[0_0_40px_rgba(255,255,255,0.2)]'
+              : 'glossy-card border-white/10'
           }`}
         >
-          {/* Subtle grid background */}
-          <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px] opacity-40 pointer-events-none" />
-
           {/* Live Pulsing Hardware Scanner Target */}
           <div className="relative z-10 flex flex-col items-center">
             <div className="relative mb-5">
               <div
                 className={`flex h-24 w-24 items-center justify-center rounded-3xl border transition-all duration-300 ${
                   isHardwareScanning || isProcessing
-                    ? 'scale-110 bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-500/20'
-                    : 'bg-white text-slate-800 border-stone-200 shadow-sm'
+                    ? 'scale-110 bg-white text-slate-950 border-white shadow-xl shadow-white/20'
+                    : 'bg-white/5 text-white border-white/15 shadow-sm'
                 }`}
               >
                 {isHardwareScanning || isProcessing ? (
                   <RefreshCw className="h-10 w-10 animate-spin" />
                 ) : (
-                  <QrCode className="h-12 w-12 text-slate-800" />
+                  <QrCode className="h-12 w-12 text-white" />
                 )}
               </div>
 
               {/* Ping ripple effect */}
               <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                <span className="relative inline-flex rounded-full h-4 w-4 bg-white" />
               </span>
             </div>
 
             {/* Status Heading */}
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/80 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800 mb-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/20 px-3 py-1 text-xs font-bold text-white mb-2">
+              <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
               Scanner Ready • Listening for Barcode
             </div>
 
-            <h3 className="text-xl font-extrabold tracking-tight text-slate-900">
+            <h3 className="text-xl font-extrabold tracking-tight text-white uppercase">
               Point Scanner Gun & Pull Trigger
             </h3>
-            <p className="mt-1.5 text-xs text-stone-600 max-w-xs leading-relaxed">
+            <p className="mt-1.5 text-xs text-stone-400 max-w-xs leading-relaxed">
               Aim the handheld scanner at the attendee QR pass to check in instantly.
             </p>
 
             {lastScanned && (
-              <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-stone-100 border border-stone-200 px-3 py-1.5 font-mono text-xs text-slate-700">
-                <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+              <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-1.5 font-mono text-xs text-stone-300">
+                <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
                 <span>Last Scanned: {lastScanned}</span>
               </div>
             )}
@@ -291,7 +288,7 @@ export function ScannerView({ onScan, isProcessing = false }: ScannerViewProps) 
           MODE 2: WEBCAM VIEW (OPTIONAL FALLBACK)
           =================================================================== */}
       {mode === 'camera' && (
-        <div className="relative w-full aspect-square sm:h-[340px] sm:w-[340px] overflow-hidden rounded-3xl border border-stone-300/80 bg-neutral-900 shadow-md">
+        <div className="relative w-full aspect-square sm:h-[340px] sm:w-[340px] overflow-hidden rounded-3xl border border-white/15 bg-neutral-950 shadow-2xl">
           <video
             ref={videoRef}
             playsInline
@@ -300,7 +297,7 @@ export function ScannerView({ onScan, isProcessing = false }: ScannerViewProps) 
             className="absolute inset-0 h-full w-full object-cover"
           />
 
-          <div className="absolute inset-0 bg-black/25 pointer-events-none" />
+          <div className="absolute inset-0 bg-black/35 pointer-events-none" />
 
           <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
             <div className="relative h-52 w-52 rounded-2xl border-2 border-white/60 bg-white/5">
@@ -308,28 +305,28 @@ export function ScannerView({ onScan, isProcessing = false }: ScannerViewProps) 
               <span className="absolute -right-1 -top-1 h-6 w-6 border-r-3 border-t-3 border-white rounded-tr-md" />
               <span className="absolute -bottom-1 -left-1 h-6 w-6 border-b-3 border-l-3 border-white rounded-bl-md" />
               <span className="absolute -bottom-1 -right-1 h-6 w-6 border-b-3 border-r-3 border-white rounded-br-md" />
-              <QrCode className="absolute inset-0 m-auto h-14 w-14 text-white/20" />
+              <QrCode className="absolute inset-0 m-auto h-14 w-14 text-white/30" />
             </div>
           </div>
 
           {cameraState === 'starting' && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900/90 text-center p-6">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-950/90 text-center p-6">
               <RefreshCw className="h-8 w-8 animate-spin text-stone-300 mb-2" />
-              <p className="font-semibold text-stone-100 text-sm">Starting Webcam...</p>
+              <p className="font-semibold text-white text-sm">Starting Webcam...</p>
             </div>
           )}
 
           {cameraState === 'denied' && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900/95 text-center p-6">
-              <AlertTriangle className="h-9 w-9 text-amber-300 mb-2" />
-              <p className="font-bold text-stone-100 text-sm">Camera Access Denied</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-950/95 text-center p-6">
+              <AlertTriangle className="h-9 w-9 text-amber-400 mb-2" />
+              <p className="font-bold text-white text-sm">Camera Access Denied</p>
               <button
                 type="button"
                 onClick={() => {
                   cameraStartedRef.current = false;
                   startCamera();
                 }}
-                className="mt-3 flex items-center gap-2 rounded-xl bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-900 hover:bg-white transition cursor-pointer"
+                className="glossy-btn-white mt-3 flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 cursor-pointer"
               >
                 <Camera className="h-3.5 w-3.5" />
                 Retry Camera
@@ -338,9 +335,9 @@ export function ScannerView({ onScan, isProcessing = false }: ScannerViewProps) 
           )}
 
           {cameraState === 'unsupported' && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900/95 text-center p-6">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-950/95 text-center p-6">
               <Laptop className="h-9 w-9 text-stone-400 mb-2" />
-              <p className="font-bold text-stone-100 text-sm">Camera Not Available</p>
+              <p className="font-bold text-white text-sm">Camera Not Available</p>
             </div>
           )}
         </div>
@@ -353,12 +350,12 @@ export function ScannerView({ onScan, isProcessing = false }: ScannerViewProps) 
           value={manualQr}
           onChange={(e) => setManualQr(e.target.value)}
           placeholder="or enter QR ID manually (e.g. EVT-7Q4M-001)..."
-          className="scanner-manual-input flex-1 rounded-xl border border-stone-300 bg-white px-4 py-3 font-mono text-sm text-slate-800 placeholder:text-stone-400 focus:border-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-stone-200 transition shadow-xs"
+          className="scanner-manual-input glossy-input flex-1 rounded-xl px-4 py-3 font-mono text-sm placeholder:text-stone-500"
         />
         <button
           type="submit"
           disabled={!manualQr.trim() || isProcessing}
-          className="flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-40 transition cursor-pointer shadow-xs"
+          className="glossy-btn-white flex items-center gap-1.5 rounded-xl px-5 py-3 text-sm font-bold text-slate-950 disabled:opacity-40 transition cursor-pointer"
         >
           Check In
           <ArrowRight className="h-4 w-4" />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, CheckCircle2, Clock, Activity, RefreshCw, Camera } from 'lucide-react';
+import { Users, CheckCircle2, Clock, Activity, RefreshCw } from 'lucide-react';
 import { Link } from 'wouter';
 import { api } from '../lib/api.js';
 import type { DashboardSummary } from '../../shared/types.js';
@@ -30,56 +30,56 @@ export function Dashboard() {
     : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-stone-100">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200/80 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex h-2 w-2 rounded-full bg-stone-500" />
-            <span className="font-mono text-xs uppercase tracking-wider text-stone-500 font-semibold">
-              Real-Time Entrance Telemetry
+            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-mono text-xs uppercase tracking-[0.25em] text-stone-400 font-semibold">
+              ARTECH Live Telemetry
             </span>
           </div>
-          <h1 className="mt-1 text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+          <h1 className="mt-1 text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
             Live Attendance Board
           </h1>
-          <p className="mt-1 text-sm text-stone-600">
-            Monitoring total attendee arrivals, entrance flow, and capacity.
+          <p className="mt-1 text-sm text-stone-400">
+            ARTECH • Live the Experience | Monitoring total arrivals, entrance flow, and capacity.
           </p>
         </div>
         <button
           onClick={fetchSummary}
-          className="inline-flex items-center gap-2 rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-stone-50 transition self-start sm:self-auto shadow-sm cursor-pointer"
+          className="glossy-btn-dark inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold self-start sm:self-auto cursor-pointer"
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
+          Refresh Data
         </button>
       </div>
 
       {/* Entrance Kiosk Quick Launch Card */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-3xl border border-stone-200/90 bg-white p-6 shadow-sm">
+      <div className="glossy-panel flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-3xl p-6 sm:p-7 border border-white/10 shadow-2xl">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-stone-100 text-slate-800 border border-stone-200">
-            <Camera className="h-6 w-6" />
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 border border-white/15 shadow-[0_0_20px_rgba(255,255,255,0.15)]">
+            <img src="/brand-logo-mark.png" alt="ARTECH" className="h-7 w-7 object-contain" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-stone-500">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-stone-400">
                 Entrance Check-In Desk
               </span>
-              <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                Active Station
+              <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-stone-200 border border-white/15">
+                Active Desk
               </span>
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mt-0.5">Entrance Kiosk Station</h3>
-            <p className="text-xs text-stone-600 mt-0.5">
+            <h3 className="text-lg font-bold text-white mt-0.5 tracking-tight">ARTECH Entrance Kiosk Station</h3>
+            <p className="text-xs text-stone-400 mt-0.5">
               Dedicated, distraction-free scanning & on-site walk-in registration terminal.
             </p>
           </div>
         </div>
         <Link
           href="/kiosk"
-          className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800 transition shadow-sm self-stretch sm:self-auto justify-center cursor-pointer whitespace-nowrap"
+          className="glossy-btn-white inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-slate-950 transition shadow-md self-stretch sm:self-auto justify-center cursor-pointer whitespace-nowrap"
         >
           <span>Launch Entrance Kiosk →</span>
         </Link>
@@ -88,101 +88,101 @@ export function Dashboard() {
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {/* Total Registered */}
-        <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+        <div className="glossy-panel rounded-3xl p-6 border border-white/10">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-xs font-bold uppercase tracking-wider text-stone-600">
+            <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-stone-400">
               Total Registered
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-stone-100 text-slate-700">
-              <Users className="h-5 w-5" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white border border-white/15">
+              <Users className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-4 text-4xl sm:text-5xl font-extrabold text-slate-900">
+          <div className="mt-4 text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
             {summary ? summary.total.toLocaleString() : '—'}
           </div>
-          <p className="mt-2 text-xs text-stone-500">All registered conference guests</p>
+          <p className="mt-2 text-xs text-stone-400">All registered conference guests</p>
         </div>
 
         {/* Checked In */}
-        <div className="rounded-3xl border border-[#D4E5D7] bg-[#F7FAF8] p-6 shadow-sm">
+        <div className="glossy-panel rounded-3xl p-6 border border-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#2D5538]">
+            <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-stone-300">
               Checked In
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E8F0EA] text-[#2D5538]">
-              <CheckCircle2 className="h-5 w-5" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-950 font-bold">
+              <CheckCircle2 className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-4 text-4xl sm:text-5xl font-extrabold text-[#2D5538]">
+          <div className="mt-4 text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
             {summary ? summary.checkedIn.toLocaleString() : '—'}
           </div>
-          <p className="mt-2 text-xs text-[#2D5538]/80 font-medium">
+          <p className="mt-2 text-xs text-stone-300 font-medium">
             {percentCheckedIn}% of expected attendees inside
           </p>
         </div>
 
         {/* Remaining / Expected */}
-        <div className="rounded-3xl border border-[#F2DECA] bg-[#FDFBF7] p-6 shadow-sm">
+        <div className="glossy-panel rounded-3xl p-6 border border-white/10">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#6D4C2F]">
+            <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-stone-400">
               Pending Arrival
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FDF3E7] text-[#6D4C2F]">
-              <Clock className="h-5 w-5" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-stone-300 border border-white/15">
+              <Clock className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-4 text-4xl sm:text-5xl font-extrabold text-[#6D4C2F]">
+          <div className="mt-4 text-4xl sm:text-5xl font-extrabold text-stone-300 tracking-tight">
             {summary ? summary.remaining.toLocaleString() : '—'}
           </div>
-          <p className="mt-2 text-xs text-[#6D4C2F]/80 font-medium">Awaiting entrance check-in</p>
+          <p className="mt-2 text-xs text-stone-400 font-medium">Awaiting entrance check-in</p>
         </div>
       </div>
 
       {/* Attendance Progress Bar */}
-      <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold text-slate-800">Overall Attendance Rate</span>
-          <span className="font-mono text-sm font-bold text-slate-800">{percentCheckedIn}%</span>
+      <div className="glossy-panel rounded-3xl p-6 border border-white/10">
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-sm font-semibold text-white tracking-wide">Overall Attendance Rate</span>
+          <span className="font-mono text-sm font-bold text-white">{percentCheckedIn}%</span>
         </div>
-        <div className="h-3 w-full overflow-hidden rounded-full bg-stone-100 border border-stone-200">
+        <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/10 border border-white/10">
           <div
-            className="h-full bg-slate-900 transition-all duration-500 rounded-full"
+            className="h-full bg-white transition-all duration-500 rounded-full shadow-[0_0_12px_rgba(255,255,255,0.6)]"
             style={{ width: `${percentCheckedIn}%` }}
           />
         </div>
       </div>
 
       {/* Recent Check-Ins Activity Feed */}
-      <div className="rounded-3xl border border-stone-200 bg-white p-6 sm:p-8 shadow-sm">
-        <div className="flex items-center gap-2 mb-5">
-          <Activity className="h-5 w-5 text-slate-700" />
-          <h2 className="text-xl font-bold text-slate-900">Recent Entrance Check-Ins</h2>
+      <div className="glossy-panel rounded-3xl p-6 sm:p-8 border border-white/10 shadow-2xl">
+        <div className="flex items-center gap-2.5 mb-5 pb-4 border-b border-white/10">
+          <Activity className="h-5 w-5 text-stone-300" />
+          <h2 className="text-xl font-bold text-white tracking-tight">Recent Entrance Check-Ins</h2>
         </div>
 
         {summary && summary.recentCheckIns.length > 0 ? (
-          <div className="divide-y divide-stone-100">
+          <div className="divide-y divide-white/10">
             {summary.recentCheckIns.map((item, idx) => (
               <div key={idx} className="flex items-center justify-between py-3.5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-stone-100 text-slate-800 font-bold text-sm border border-stone-200">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white font-bold text-sm border border-white/15">
                     {item.name.slice(0, 1)}
                   </div>
                   <div>
-                    <div className="font-bold text-slate-900 text-base">{item.name}</div>
-                    <div className="text-xs text-stone-500">
-                      {item.company || 'Attendee'} •{' '}
-                      <span className="font-mono text-stone-700 uppercase font-semibold">{item.ticketType}</span>
+                    <div className="font-bold text-white text-base">{item.name}</div>
+                    <div className="text-xs text-stone-400">
+                      {item.company || 'Guest'} •{' '}
+                      <span className="font-mono text-stone-300 uppercase font-semibold">{item.ticketType}</span>
                     </div>
                   </div>
                 </div>
-                <span className="font-mono text-xs text-stone-500 font-medium">
+                <span className="font-mono text-xs text-stone-400 font-medium">
                   {new Date(item.checkedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-center text-sm text-stone-500 py-8">
+          <p className="text-center text-sm text-stone-400 py-8">
             No check-ins recorded yet today.
           </p>
         )}

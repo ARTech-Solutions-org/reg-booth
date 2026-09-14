@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Printer, Download, CheckCircle2, Clock, Users, Plus, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Printer, Download, CheckCircle2, Clock, Users, RefreshCw } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { PrintBadgeModal } from '../components/PrintBadgeModal.js';
 import { downloadAttendeeTicket } from '../lib/qr-utils.js';
@@ -47,20 +47,26 @@ export function Attendees() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-stone-100">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200/80 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
-            Attendee Roster
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-2 w-2 rounded-full bg-white/80" />
+            <span className="font-mono text-xs uppercase tracking-[0.25em] text-stone-400 font-semibold">
+              ARTECH Directory
+            </span>
+          </div>
+          <h1 className="mt-1 text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+            Guest Roster
           </h1>
-          <p className="mt-1 text-sm text-stone-600">
-            View, search, filter attendees, and print official credentials.
+          <p className="mt-1 text-sm text-stone-400">
+            ARTECH • Live the Experience | Search, filter guests, and print official credentials.
           </p>
         </div>
         <button
           onClick={fetchAttendees}
-          className="inline-flex items-center gap-2 rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-stone-50 transition self-start sm:self-auto shadow-sm cursor-pointer"
+          className="glossy-btn-dark inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold self-start sm:self-auto cursor-pointer"
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           Refresh List
@@ -76,19 +82,19 @@ export function Attendees() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name, email, company, or QR ID..."
-            className="w-full rounded-xl border border-stone-300 bg-white pl-10 pr-4 py-3 text-sm text-slate-900 placeholder:text-stone-400 focus:border-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-stone-200 transition shadow-sm"
+            className="glossy-input w-full rounded-xl pl-10 pr-4 py-3 text-sm placeholder:text-stone-500"
           />
         </form>
 
-        <div className="flex rounded-xl border border-stone-200 bg-white p-1 shadow-sm">
+        <div className="glossy-panel flex rounded-xl p-1 gap-1">
           {(['all', 'checked-in', 'pending'] as const).map((filter) => (
             <button
               key={filter}
               onClick={() => setStatusFilter(filter)}
               className={`rounded-lg px-4 py-2 text-xs font-semibold capitalize transition cursor-pointer ${
                 statusFilter === filter
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'text-stone-600 hover:text-slate-900 hover:bg-stone-50'
+                  ? 'glossy-btn-white text-slate-950 shadow-xs'
+                  : 'text-stone-400 hover:text-white hover:bg-white/5'
               }`}
             >
               {filter === 'checked-in' ? 'Checked In' : filter}
@@ -98,64 +104,62 @@ export function Attendees() {
       </div>
 
       {/* Attendees Table */}
-      <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+      <div className="glossy-panel overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
         {isLoading ? (
           <div className="p-12 text-center text-stone-400">
-            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-3 text-stone-500" />
-            <p className="font-semibold text-stone-600">Loading attendees roster...</p>
+            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-3 text-white" />
+            <p className="font-semibold text-white">Loading attendees roster...</p>
           </div>
         ) : attendees.length === 0 ? (
           <div className="p-12 text-center text-stone-400">
             <Users className="h-12 w-12 mx-auto mb-3 opacity-30 text-stone-400" />
-            <p className="text-base font-bold text-slate-700">No attendees found</p>
-            <p className="text-xs mt-1 text-stone-500">Try adjusting your search query or filter.</p>
+            <p className="text-base font-bold text-white">No attendees found</p>
+            <p className="text-xs mt-1 text-stone-400">Try adjusting your search query or filter.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-700">
-              <thead className="border-b border-stone-200 bg-stone-50 text-xs font-semibold uppercase tracking-wider text-stone-600">
+            <table className="w-full text-left text-sm text-stone-300">
+              <thead className="border-b border-white/10 bg-white/5 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400 font-mono">
                 <tr>
-                  <th className="px-6 py-4">Attendee</th>
+                  <th className="px-6 py-4">Guest</th>
                   <th className="px-6 py-4">Organization</th>
-                  <th className="px-6 py-4">Ticket</th>
+                  <th className="px-6 py-4">Ticket Tier</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-white/5">
                 {attendees.map((attendee) => (
-                  <tr key={attendee.id} className="hover:bg-stone-50/70 transition">
+                  <tr key={attendee.id} className="hover:bg-white/5 transition">
                     <td className="px-6 py-4">
-                      <div className="font-bold text-slate-900 text-base">{attendee.name}</div>
+                      <div className="font-bold text-white text-base tracking-tight">{attendee.name}</div>
                       <div className="text-xs text-stone-400 font-mono mt-0.5">
                         {attendee.qrId} {attendee.email ? `• ${attendee.email}` : ''}
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-medium text-stone-600">
+                    <td className="px-6 py-4 font-medium text-stone-300">
                       {attendee.company || '—'}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`rounded-md px-2.5 py-1 text-xs font-mono font-bold uppercase border ${
+                      <span className={`rounded-md px-2.5 py-1 text-xs font-mono font-bold uppercase tracking-wider border ${
                         attendee.ticketType.toLowerCase() === 'vip'
-                          ? 'bg-[#FDF3E7] text-[#6D4C2F] border-[#F2DECA]'
+                          ? 'bg-white text-slate-950 border-white font-black shadow-xs'
                           : attendee.ticketType.toLowerCase() === 'speaker'
-                          ? 'bg-[#EEF3F8] text-[#2B4C6F] border-[#D4E0EE]'
-                          : attendee.ticketType.toLowerCase() === 'press'
-                          ? 'bg-[#FBF0F1] text-[#6E333B] border-[#F0D5D8]'
-                          : 'bg-[#EFF5F0] text-[#2D5538] border-[#D4E5D7]'
+                          ? 'bg-white/15 text-white border-white/25'
+                          : 'bg-stone-800 text-stone-200 border-stone-700'
                       }`}>
                         {attendee.ticketType}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       {attendee.checkedInAt ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F0EA] px-3 py-1 text-xs font-semibold text-[#2D5538] border border-[#D4E5D7]">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-[#2D5538]" />
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white border border-white/20">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
                           Checked In
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-600 border border-stone-200">
-                          <Clock className="h-3.5 w-3.5 text-stone-400" />
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-stone-400 border border-white/10">
+                          <Clock className="h-3.5 w-3.5 text-stone-500" />
                           Pending
                         </span>
                       )}
@@ -164,7 +168,7 @@ export function Attendees() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => openPrint(attendee)}
-                          className="inline-flex items-center gap-1 rounded-xl bg-stone-100 border border-stone-300 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-900 hover:text-white transition shadow-sm cursor-pointer"
+                          className="glossy-btn-white inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold shadow-xs cursor-pointer"
                           title="Print official lanyard badge"
                         >
                           <Printer className="h-3.5 w-3.5" />
@@ -172,7 +176,7 @@ export function Attendees() {
                         </button>
                         <button
                           onClick={() => handleDownload(attendee)}
-                          className="p-1.5 rounded-xl border border-stone-300 bg-white text-stone-600 hover:bg-stone-50 transition shadow-sm cursor-pointer"
+                          className="glossy-btn-dark p-1.5 rounded-xl cursor-pointer"
                           title="Download pass image"
                         >
                           <Download className="h-4 w-4" />

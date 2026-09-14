@@ -44,9 +44,9 @@ router.post('/public/register', async (req, res): Promise<void> => {
 // Public event info
 router.get('/public/event-info', (_req, res): void => {
   res.json({
-    eventName: 'Global Innovators Summit 2026',
-    date: 'September 24–26, 2026',
-    location: 'Metropolitan Convention Center — Gate 4',
+    eventName: 'ARTECH • LIVE THE EXPERIENCE',
+    date: 'September 2026',
+    location: 'ARTECH Main Pavilion — Access Gate 1',
     ticketTypes: ['General', 'VIP', 'Speaker', 'Press', 'Staff'],
   });
 });

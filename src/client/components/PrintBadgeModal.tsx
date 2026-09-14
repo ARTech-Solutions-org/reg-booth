@@ -57,12 +57,12 @@ export function PrintBadgeModal({
   return (
     <>
       {/* On-Screen Modal Dialog */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-md">
-        <div className="relative flex w-full max-w-xl flex-col items-center rounded-3xl border border-stone-200 bg-white p-6 sm:p-8 shadow-lg animate-in fade-in zoom-in-95 duration-200">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xl">
+        <div className="relative flex w-full max-w-xl flex-col items-center rounded-3xl glossy-panel p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200 text-stone-100">
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute right-5 top-5 rounded-full p-2 text-stone-400 hover:bg-stone-100 hover:text-slate-800 transition cursor-pointer"
+            className="absolute right-5 top-5 rounded-full p-2 text-stone-400 hover:bg-white/10 hover:text-white transition cursor-pointer"
             aria-label="Close modal"
           >
             <X className="h-5 w-5" />
@@ -70,14 +70,14 @@ export function PrintBadgeModal({
 
           {/* Modal Header */}
           <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-stone-50 px-4 py-1.5 text-xs font-semibold text-stone-700 mb-2">
-              <Sparkles className="h-3.5 w-3.5 text-stone-500" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-stone-300 mb-2">
+              <Sparkles className="h-3.5 w-3.5 text-stone-400" />
               Lanyard Ready Format
             </div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+            <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl font-display">
               {title}
             </h2>
-            <p className="mt-1 text-sm text-stone-600">
+            <p className="mt-1 text-sm text-stone-400">
               {subtitle}
             </p>
           </div>
@@ -92,7 +92,7 @@ export function PrintBadgeModal({
             <button
               onClick={handlePrint}
               disabled={!isQrReady}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 px-5 py-3.5 text-base font-bold text-white shadow-sm transition active:scale-[0.98] cursor-pointer"
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl glossy-btn-white py-3.5 text-base font-bold shadow-sm transition active:scale-[0.98] cursor-pointer disabled:opacity-50"
             >
               {isQrReady ? (
                 <>
@@ -108,7 +108,7 @@ export function PrintBadgeModal({
             </button>
             <button
               onClick={handleDownload}
-              className="flex items-center justify-center gap-2 rounded-xl border border-stone-300 bg-stone-50 px-5 py-3.5 text-base font-semibold text-slate-700 transition hover:bg-stone-100 shadow-sm cursor-pointer"
+              className="flex items-center justify-center gap-2 rounded-xl glossy-btn-dark px-5 py-3.5 text-base font-semibold transition active:scale-[0.98] cursor-pointer"
             >
               <Download className="h-5 w-5" />
               Save Image
@@ -116,7 +116,7 @@ export function PrintBadgeModal({
           </div>
 
           {/* Help tip */}
-          <p className="mt-4 text-center text-xs text-slate-500">
+          <p className="mt-4 text-center text-xs text-stone-400">
             Tip: For thermal badge or label printers, set margins to "None" in the print dialog.
           </p>
         </div>

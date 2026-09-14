@@ -37,28 +37,30 @@ function Shell({
   ];
 
   return (
-    <div className="min-h-screen calm-canvas-bg text-slate-800 md:flex">
+    <div className="min-h-screen calm-canvas-bg text-stone-100 md:flex">
       {/* Sidebar for Desktop */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-stone-200/80 bg-white/95 p-6 backdrop-blur-xl transition-transform md:static md:translate-x-0 shadow-sm ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-white/10 bg-[#0C0E14]/90 p-6 backdrop-blur-2xl transition-transform md:static md:translate-x-0 shadow-2xl ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Brand */}
-        <div className="flex items-center justify-between pb-6 border-b border-stone-200/80">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-100 border border-stone-200 font-bold text-slate-800 shadow-sm">
-              <QrCode className="h-6 w-6" />
-            </div>
+        <div className="flex items-center justify-between pb-6 border-b border-white/10">
+          <Link href="/admin" className="flex items-center gap-3 cursor-pointer group">
+            <img
+              src="/brand-logo-mark.png"
+              alt="ARTECH Logo"
+              className="h-9 w-9 object-contain drop-shadow-[0_0_14px_rgba(255,255,255,0.25)] transition group-hover:scale-105"
+            />
             <div>
-              <div className="font-extrabold tracking-tight text-slate-900 text-base">EventPass</div>
-              <div className="font-mono text-[10px] text-stone-500 font-semibold uppercase tracking-wider">
-                Admin Station
+              <div className="font-extrabold tracking-[0.22em] text-white text-sm uppercase">ARTECH</div>
+              <div className="font-mono text-[9px] text-stone-400 font-semibold uppercase tracking-[0.25em]">
+                Live Experience
               </div>
             </div>
-          </div>
+          </Link>
           <button
-            className="md:hidden text-stone-400 hover:text-slate-700"
+            className="md:hidden text-stone-400 hover:text-white"
             onClick={() => setMobileMenuOpen(false)}
           >
             <X className="h-5 w-5" />
@@ -67,7 +69,7 @@ function Shell({
 
         {/* Navigation items */}
         <nav className="mt-6 space-y-1.5 flex-1">
-          <p className="px-3 text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-stone-400 mb-2">
+          <p className="px-3 text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-stone-400 mb-2">
             Operations
           </p>
           {navItems.map(({ href, label, icon: Icon }) => {
@@ -79,8 +81,8 @@ function Shell({
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold transition cursor-pointer ${
                   isActive
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-stone-600 hover:bg-stone-100 hover:text-slate-900'
+                    ? 'glossy-btn-white text-slate-900 shadow-md'
+                    : 'text-stone-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -91,53 +93,53 @@ function Shell({
 
           {/* Dedicated Entrance Kiosk Link */}
           <div className="pt-4">
-            <p className="px-3 text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-stone-400 mb-2">
+            <p className="px-3 text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-stone-400 mb-2">
               Entrance Desk
             </p>
             <Link
               href="/kiosk"
-              className="flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 bg-stone-100/70 hover:bg-stone-200/80 transition border border-stone-200/80"
+              className="flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold text-stone-200 bg-white/5 hover:bg-white/10 transition border border-white/10"
             >
               <div className="flex items-center gap-2">
-                <Camera className="h-4 w-4 text-stone-600" />
+                <Camera className="h-4 w-4 text-stone-400" />
                 <span>Entrance Kiosk Station</span>
               </div>
-              <span className="font-mono text-[10px] uppercase font-bold text-stone-600 bg-white px-1.5 py-0.5 rounded border border-stone-200">
-                Desk
+              <span className="font-mono text-[10px] uppercase font-bold text-stone-300 bg-white/10 px-1.5 py-0.5 rounded border border-white/15">
+                Kiosk
               </span>
             </Link>
           </div>
 
           <div className="pt-4">
-            <p className="px-3 text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-stone-400 mb-2">
+            <p className="px-3 text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-stone-400 mb-2">
               Public Portal
             </p>
             <Link
               href="/register"
-              className="flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 hover:text-slate-900 transition border border-stone-200"
+              className="flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold text-stone-300 hover:bg-white/5 hover:text-white transition border border-white/10"
               target="_blank"
             >
-              <span>Public Registration Form</span>
+              <span>Guest Registration</span>
               <ExternalLink className="h-3.5 w-3.5 text-stone-400" />
             </Link>
           </div>
         </nav>
 
         {/* User Card & Logout */}
-        <div className="mt-auto border-t border-stone-200/80 pt-5">
+        <div className="mt-auto border-t border-white/10 pt-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-stone-100 text-slate-800 font-bold border border-stone-200">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white font-bold border border-white/15">
                 {user.displayName.slice(0, 1).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <div className="truncate text-sm font-bold text-slate-900">{user.displayName}</div>
+                <div className="truncate text-sm font-bold text-white">{user.displayName}</div>
                 <div className="truncate font-mono text-[10px] text-stone-400">@{user.username}</div>
               </div>
             </div>
             <button
               onClick={onLogout}
-              className="rounded-lg p-2 text-stone-400 hover:bg-stone-100 hover:text-slate-800 transition cursor-pointer"
+              className="rounded-lg p-2 text-stone-400 hover:bg-white/10 hover:text-white transition cursor-pointer"
               title="Sign Out"
             >
               <LogOut className="h-4 w-4" />
@@ -149,7 +151,7 @@ function Shell({
       {/* Mobile backdrop */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-30 bg-slate-900/20 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -157,22 +159,20 @@ function Shell({
       {/* Main Content Pane */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile Header Bar */}
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-stone-200/80 bg-white/90 px-4 backdrop-blur-md md:hidden">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-white/10 bg-[#0C0E14]/85 px-4 backdrop-blur-xl md:hidden">
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="rounded-lg p-2 text-slate-700 hover:text-slate-900"
+            className="rounded-lg p-2 text-stone-300 hover:text-white"
           >
             <Menu className="h-6 w-6" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-100 text-slate-800 border border-stone-200">
-              <QrCode className="h-4 w-4" />
-            </div>
-            <span className="font-bold text-slate-900 text-base">EventPass</span>
+            <img src="/brand-logo-mark.png" alt="ARTECH" className="h-6 w-6 object-contain" />
+            <span className="font-extrabold text-white text-sm tracking-[0.2em] uppercase">ARTECH</span>
           </div>
           <button
             onClick={onLogout}
-            className="text-stone-400 hover:text-slate-800 p-2"
+            className="text-stone-400 hover:text-white p-2"
             title="Sign Out"
           >
             <LogOut className="h-5 w-5" />
@@ -212,9 +212,15 @@ export function App() {
   if (isCheckingAuth) {
     return (
       <div className="min-h-screen calm-canvas-bg flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 border-4 border-slate-800 border-t-transparent rounded-full animate-spin" />
-          <p className="font-mono text-xs text-stone-500 font-semibold">Loading EventPass Station...</p>
+        <div className="flex flex-col items-center gap-4">
+          <img
+            src="/brand-logo-mark.png"
+            alt="ARTECH"
+            className="h-12 w-12 object-contain animate-pulse drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]"
+          />
+          <p className="font-mono text-xs text-stone-400 font-semibold tracking-[0.25em] uppercase">
+            Loading ARTECH Station...
+          </p>
         </div>
       </div>
     );

@@ -18,7 +18,7 @@ export async function generateQrDataUrl(text: string, size = 300): Promise<strin
   }
 }
 
-export async function downloadAttendeeTicket(attendee: Attendee, eventName = 'Global Innovators Summit 2026'): Promise<void> {
+export async function downloadAttendeeTicket(attendee: Attendee, eventName = 'ARTECH • LIVE THE EXPERIENCE'): Promise<void> {
   const qrDataUrl = await generateQrDataUrl(attendee.qrId, 600);
   if (!qrDataUrl) return;
 
@@ -35,83 +35,83 @@ export async function downloadAttendeeTicket(attendee: Attendee, eventName = 'Gl
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  // Background: Calm, warm eggshell cream
-  ctx.fillStyle = '#FAF8F5';
+  // Background: Deep obsidian calm background
+  ctx.fillStyle = '#08090C';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Outer card frame
-  ctx.strokeStyle = '#E7E2D8';
+  // Outer card frame (subtle silver/zinc stroke)
+  ctx.strokeStyle = '#27272A';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.roundRect(24, 24, canvas.width - 48, canvas.height - 48, 28);
   ctx.stroke();
 
-  // Minimal top header divider
-  ctx.fillStyle = '#D6D3CD';
-  ctx.fillRect(100, 45, canvas.width - 200, 3);
+  // Minimal top header accent
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(100, 45, canvas.width - 200, 2);
 
   // Event Header Eyebrow
-  ctx.fillStyle = '#64748B';
-  ctx.font = '700 16px "JetBrains Mono", monospace';
+  ctx.fillStyle = '#A1A1AA';
+  ctx.font = '700 15px "JetBrains Mono", monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('• OFFICIAL DIGITAL PASS •', canvas.width / 2, 90);
+  ctx.fillText('• OFFICIAL DIGITAL CREDENTIAL •', canvas.width / 2, 88);
 
   // Event Name
-  ctx.fillStyle = '#0F172A';
-  ctx.font = '800 32px "Plus Jakarta Sans", sans-serif';
-  ctx.fillText(eventName.toUpperCase(), canvas.width / 2, 135);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '800 30px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(eventName.toUpperCase(), canvas.width / 2, 132);
 
   // Divider line
-  ctx.strokeStyle = '#E7E2D8';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#27272A';
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(80, 168);
-  ctx.lineTo(canvas.width - 80, 168);
+  ctx.moveTo(80, 165);
+  ctx.lineTo(canvas.width - 80, 165);
   ctx.stroke();
 
   // Attendee Name
-  ctx.fillStyle = '#0F172A';
+  ctx.fillStyle = '#FFFFFF';
   ctx.font = '800 44px "Plus Jakarta Sans", sans-serif';
   ctx.fillText(attendee.name, canvas.width / 2, 235);
 
   // Company / Affiliation
   if (attendee.company) {
-    ctx.fillStyle = '#64748B';
+    ctx.fillStyle = '#94A3B8';
     ctx.font = '600 24px "Plus Jakarta Sans", sans-serif';
     ctx.fillText(attendee.company, canvas.width / 2, 280);
   }
 
-  // Ticket Tier Pill Box (Calm muted pastel)
+  // Ticket Tier Pill Box (Monochromatic: black, white, silver)
   const badgeY = attendee.company ? 320 : 275;
   const tierText = attendee.ticketType.toUpperCase();
   ctx.font = '800 18px "JetBrains Mono", monospace';
-  const textWidth = ctx.measureText(tierText).width;
-  const pillWidth = Math.max(textWidth + 50, 160);
+  const textWidth = ctx.measureText(`${tierText} ACCESS`).width;
+  const pillWidth = Math.max(textWidth + 50, 180);
   const pillHeight = 40;
   const pillX = (canvas.width - pillWidth) / 2;
 
   const tier = attendee.ticketType.toLowerCase();
-  let pillBg = '#EFF5F0'; // soft sage
-  let pillBorder = '#D4E5D7';
-  let pillTextColor = '#2D5538';
+  let pillBg = '#18181B';
+  let pillBorder = '#3F3F46';
+  let pillTextColor = '#E4E4E7';
 
   if (tier === 'vip') {
-    pillBg = '#FDF3E7'; // soft peach/sand
-    pillBorder = '#F2DECA';
-    pillTextColor = '#6D4C2F';
+    pillBg = '#FFFFFF';
+    pillBorder = '#FFFFFF';
+    pillTextColor = '#000000';
   } else if (tier === 'speaker') {
-    pillBg = '#EEF3F8'; // soft dusty cornflower
-    pillBorder = '#D4E0EE';
-    pillTextColor = '#2B4C6F';
+    pillBg = '#27272A';
+    pillBorder = '#52525B';
+    pillTextColor = '#FAFAFA';
   } else if (tier === 'press' || tier === 'staff') {
-    pillBg = '#FBF0F1'; // soft dusty rose
-    pillBorder = '#F0D5D8';
-    pillTextColor = '#6E333B';
+    pillBg = '#3F3F46';
+    pillBorder = '#71717A';
+    pillTextColor = '#FFFFFF';
   }
 
   ctx.fillStyle = pillBg;
   ctx.strokeStyle = pillBorder;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.roundRect(pillX, badgeY, pillWidth, pillHeight, 20);
   ctx.fill();
@@ -120,13 +120,14 @@ export async function downloadAttendeeTicket(attendee: Attendee, eventName = 'Gl
   ctx.fillStyle = pillTextColor;
   ctx.fillText(`${tierText} ACCESS`, canvas.width / 2, badgeY + 26);
 
-  // Pure White Card Container for QR Code with soft stone border
+  // Pure White Card Container for QR Code with rounded corners
+  // (Ensures high optical contrast for mobile screens & physical barcode scanners)
   const qrBoxSize = 460;
   const qrBoxY = badgeY + 65;
   const qrBoxX = (canvas.width - qrBoxSize) / 2;
 
   ctx.fillStyle = '#FFFFFF';
-  ctx.strokeStyle = '#E2DFD8';
+  ctx.strokeStyle = '#E4E4E7';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.roundRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 28);
@@ -138,19 +139,19 @@ export async function downloadAttendeeTicket(attendee: Attendee, eventName = 'Gl
 
   // QR ID underneath
   const idY = qrBoxY + qrBoxSize + 45;
-  ctx.fillStyle = '#0F172A';
+  ctx.fillStyle = '#FFFFFF';
   ctx.font = '800 28px "JetBrains Mono", monospace';
   ctx.fillText(attendee.qrId, canvas.width / 2, idY);
 
   // Footer instructions
-  ctx.fillStyle = '#64748B';
-  ctx.font = '500 18px "Plus Jakarta Sans", sans-serif';
-  ctx.fillText('Show this pass at the entrance for check-in & badge printing', canvas.width / 2, idY + 45);
+  ctx.fillStyle = '#71717A';
+  ctx.font = '500 17px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('Show this pass at ARTECH station for check-in & badge printing', canvas.width / 2, idY + 45);
 
   // Trigger download
   const link = document.createElement('a');
   const safeName = attendee.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-  link.download = `${safeName}-event-pass.png`;
+  link.download = `${safeName}-artech-pass.png`;
   link.href = canvas.toDataURL('image/png');
   link.click();
 }

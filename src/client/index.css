@@ -8,15 +8,112 @@
 
   body {
     font-family: var(--font-sans);
+    background-color: #08090C;
+    color: #F1F5F9;
+  }
+
+  /* Custom subtle dark scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #08090C;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #272B35;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3F4452;
   }
 }
 
-/* Subtle calm canvas texture */
+/* ==========================================================================
+   ARTECH CALM & GLOSSY MONOCHROMATIC DESIGN SYSTEM
+   ========================================================================== */
+
+/* Serene Obsidian Canvas Background */
 .calm-canvas-bg {
-  background-color: #F9F8F5;
-  background-image: 
-    radial-gradient(at 15% 15%, rgba(241, 238, 231, 0.8) 0px, transparent 40%),
-    radial-gradient(at 85% 85%, rgba(237, 241, 238, 0.8) 0px, transparent 40%);
+  background-color: #08090C;
+  background-image:
+    radial-gradient(at 10% 10%, rgba(255, 255, 255, 0.05) 0px, transparent 45%),
+    radial-gradient(at 90% 90%, rgba(255, 255, 255, 0.02) 0px, transparent 45%),
+    radial-gradient(at 50% 50%, rgba(255, 255, 255, 0.015) 0px, transparent 60%);
+  background-attachment: fixed;
+}
+
+/* Frosted Glass Panels with Specular Edge */
+.glossy-panel {
+  background: rgba(15, 17, 23, 0.78);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 24px 48px -12px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+}
+
+/* Secondary Glass Cards */
+.glossy-card {
+  background: rgba(20, 23, 31, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 12px 28px -8px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+/* High-Gloss Reflective Button */
+.glossy-btn-white {
+  background: linear-gradient(180deg, #FFFFFF 0%, #E2E8F0 100%);
+  color: #08090C;
+  font-weight: 700;
+  box-shadow: 
+    0 4px 16px rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glossy-btn-white:hover {
+  background: #FFFFFF;
+  box-shadow: 
+    0 6px 20px rgba(255, 255, 255, 0.2),
+    inset 0 1px 0 #FFFFFF;
+  transform: translateY(-1px);
+}
+
+/* Dark Frosted Glass Button */
+.glossy-btn-dark {
+  background: rgba(255, 255, 255, 0.06);
+  color: #F8FAFC;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glossy-btn-dark:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  transform: translateY(-1px);
+}
+
+/* Frosted Form Input */
+.glossy-input {
+  background: rgba(11, 13, 18, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+}
+.glossy-input:focus {
+  background: rgba(14, 16, 22, 0.95);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 0 0 2px rgba(255, 255, 255, 0.1),
+    inset 0 2px 4px rgba(0, 0, 0, 0.4);
+  outline: none;
 }
 
 /* ==========================================================================
@@ -63,7 +160,7 @@
 
   #print-badge-container .badge-card-printable {
     box-shadow: none !important;
-    border: 1.5px solid #94a3b8 !important;
+    border: 1.5px solid #0f172a !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     -webkit-print-color-adjust: exact !important;
