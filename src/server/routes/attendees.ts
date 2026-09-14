@@ -45,7 +45,7 @@ router.post('/attendees/walk-in', async (req, res): Promise<void> => {
       email: email.trim(),
       company: company.trim(),
       ticketType: ticketType && typeof ticketType === 'string' ? ticketType.trim() : 'General',
-      checkedIn: autoCheckIn === true, // Default to false so attendee pass can be scanned at the entrance scanner gun
+      checkedIn: true, // Walk-in is on-site registration: mark checked in immediately so it can only be printed once
     });
 
     res.status(201).json({
@@ -55,7 +55,7 @@ router.post('/attendees/walk-in', async (req, res): Promise<void> => {
     });
   } catch (err: any) {
     console.error('Walk-in creation error:', err);
-    res.status(500).json({ error: 'Failed to register walk-in attendee.' });
+    res.status(500).json({ error: err?.message || 'Failed to register walk-in attendee.' });
   }
 });
 

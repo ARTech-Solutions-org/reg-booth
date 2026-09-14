@@ -36,6 +36,7 @@ export function AdminCheckIn() {
   const [isSubmittingWalkIn, setIsSubmittingWalkIn] = useState(false);
   const [walkInResult, setWalkInResult] = useState<Attendee | null>(null);
   const [walkInError, setWalkInError] = useState<string | null>(null);
+  const [hasWalkInPrinted, setHasWalkInPrinted] = useState(false);
 
   // Badge Print Modal State
   const [badgeAttendee, setBadgeAttendee] = useState<Attendee | null>(null);
@@ -128,6 +129,7 @@ export function AdminCheckIn() {
   const resetWalkIn = () => {
     setWalkInResult(null);
     setWalkInError(null);
+    setHasWalkInPrinted(false);
   };
 
   // =========================================================================
@@ -136,6 +138,7 @@ export function AdminCheckIn() {
   const openBadgePrint = (attendee: Attendee) => {
     setBadgeAttendee(attendee);
     setIsPrintModalOpen(true);
+    setHasWalkInPrinted(true);
   };
 
   return (
@@ -489,17 +492,35 @@ export function AdminCheckIn() {
                   </div>
                 </div>
 
+                <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3 text-center text-xs text-stone-300 font-medium">
+                  Security Policy: Badges are limited to one print upon on-site registration.
+                </div>
+
                 <div className="mt-6 flex flex-col sm:flex-row items-center gap-3 w-full">
                   <button
+                    disabled={hasWalkInPrinted}
                     onClick={() => openBadgePrint(walkInResult)}
-                    className="glossy-btn-white flex-1 flex items-center justify-center gap-2.5 rounded-2xl px-6 py-3.5 text-base font-bold shadow-md cursor-pointer"
+                    className={`flex-1 flex items-center justify-center gap-2.5 rounded-2xl px-6 py-3.5 text-base font-bold shadow-md transition ${
+                      hasWalkInPrinted
+                        ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 cursor-not-allowed opacity-85'
+                        : 'glossy-btn-white cursor-pointer'
+                    }`}
                   >
-                    <Printer className="h-5 w-5" />
-                    Print Badge Now
+                    {hasWalkInPrinted ? (
+                      <>
+                        <Check className="h-5 w-5 text-emerald-400" />
+                        Badge Printed (1 Issue Limit)
+                      </>
+                    ) : (
+                      <>
+                        <Printer className="h-5 w-5" />
+                        Print Badge Now
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={resetWalkIn}
-                    className="glossy-btn-dark flex-1 flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-base font-semibold cursor-pointer"
+                    className="glossy-btn-white flex-1 flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-base font-bold shadow-md cursor-pointer"
                   >
                     <UserPlus className="h-4 w-4" />
                     Register Another Walk-In

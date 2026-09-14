@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, Download, X, Sparkles, RefreshCw } from 'lucide-react';
+import { Printer, Download, X, Sparkles, RefreshCw, Check } from 'lucide-react';
 import type { Attendee } from '../../shared/types.js';
 import { BadgeCard } from './BadgeCard.js';
 import { downloadAttendeeTicket, generateQrDataUrl } from '../lib/qr-utils.js';
@@ -22,6 +22,7 @@ export function PrintBadgeModal({
 }: PrintBadgeModalProps) {
   const [qrUrl, setQrUrl] = useState<string>('');
   const [isQrReady, setIsQrReady] = useState(false);
+  const [hasPrinted, setHasPrinted] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -33,6 +34,7 @@ export function PrintBadgeModal({
 
   useEffect(() => {
     if (attendee && isOpen) {
+      setHasPrinted(false);
       setIsQrReady(false);
       generateQrDataUrl(attendee.qrId, 450)
         .then((url) => {
@@ -46,7 +48,8 @@ export function PrintBadgeModal({
   if (!isOpen || !attendee) return null;
 
   const handlePrint = () => {
-    if (!isQrReady) return;
+    if (!isQrReady || hasPrinted) return;
+    setHasPrinted(true);
     if ((window as any).electronAPI && typeof (window as any).electronAPI.silentPrint === 'function') {
       (window as any).electronAPI.silentPrint();
     } else {
@@ -95,13 +98,22 @@ export function PrintBadgeModal({
           <div className="mt-6 flex w-full flex-col sm:flex-row gap-3">
             <button
               onClick={handlePrint}
-              disabled={!isQrReady}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl glossy-btn-white py-3.5 text-base font-bold shadow-sm transition active:scale-[0.98] cursor-pointer disabled:opacity-50"
+              disabled={!isQrReady || hasPrinted}
+              className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-3.5 text-base font-bold shadow-sm transition ${
+                hasPrinted
+                  ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 cursor-not-allowed opacity-85'
+                  : 'glossy-btn-white cursor-pointer active:scale-[0.98] disabled:opacity-50'
+              }`}
             >
-              {isQrReady ? (
+              {hasPrinted ? (
+                <>
+                  <Check className="h-5 w-5 text-emerald-400" />
+                  Badge Dispatched (Printed Once)
+                </>
+              ) : isQrReady ? (
                 <>
                   <Printer className="h-5 w-5" />
-                  Print Badge Now
+                  Print Official Badge
                 </>
               ) : (
                 <>

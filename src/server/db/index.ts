@@ -25,16 +25,15 @@ function mapRowToAttendee(row: any): Attendee {
   };
 }
 
+const DEFAULT_DATABASE_URL = 'postgresql://neondb_owner:npg_SwpcZsGgx6K1@ep-odd-hall-a5tabuwm-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+
 class EventDatabase {
   private pool: pg.Pool | null = null;
   private initPromise: Promise<void> | null = null;
 
   private getPool(): pg.Pool {
     if (!this.pool) {
-      const connectionString = process.env.DATABASE_URL;
-      if (!connectionString) {
-        throw new Error('DATABASE_URL environment variable is required to connect to Neon PostgreSQL.');
-      }
+      const connectionString = process.env.DATABASE_URL || DEFAULT_DATABASE_URL;
       this.pool = new Pool({
         connectionString,
         ssl: {
@@ -43,6 +42,7 @@ class EventDatabase {
         max: 10,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 15000,
+        keepAlive: true,
       });
 
       this.pool.on('error', (err) => {
@@ -50,6 +50,25 @@ class EventDatabase {
       });
     }
     return this.pool;
+  }
+
+  public async queryWithRetry(text: string, params?: any[]): Promise<pg.QueryResult<any>> {
+    const pool = this.getPool();
+    try {
+      return await pool.query(text, params);
+    } catch (err: any) {
+      const isConnectionError =
+        err?.message?.includes('Connection terminated') ||
+        err?.message?.includes('timeout') ||
+        err?.code === 'ECONNRESET' ||
+        err?.code === '57P01';
+
+      if (isConnectionError) {
+        console.warn('[Database] Connection dropped or timed out, retrying query...');
+        return await pool.query(text, params);
+      }
+      throw err;
+    }
   }
 
   public async init(): Promise<void> {
@@ -134,9 +153,6 @@ class EventDatabase {
   }
 
   public async getAttendees(filters?: { q?: string; status?: 'all' | 'checked-in' | 'pending' }): Promise<Attendee[]> {
-    await this.init();
-    const pool = this.getPool();
-
     const conditions: string[] = [];
     const values: any[] = [];
 
@@ -158,7 +174,7 @@ class EventDatabase {
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const res = await pool.query(
+    const res = await this.queryWithRetry(
       `SELECT * FROM attendees ${whereClause} ORDER BY id DESC`,
       values
     );
@@ -167,9 +183,7 @@ class EventDatabase {
   }
 
   public async getAttendeeByQrId(qrId: string): Promise<Attendee | null> {
-    await this.init();
-    const pool = this.getPool();
-    const res = await pool.query(
+    const res = await this.queryWithRetry(
       `SELECT * FROM attendees WHERE UPPER(qr_id) = UPPER($1) LIMIT 1`,
       [qrId.trim()]
     );
@@ -178,9 +192,7 @@ class EventDatabase {
   }
 
   public async getAttendeeById(id: number): Promise<Attendee | null> {
-    await this.init();
-    const pool = this.getPool();
-    const res = await pool.query(`SELECT * FROM attendees WHERE id = $1 LIMIT 1`, [id]);
+    const res = await this.queryWithRetry(`SELECT * FROM attendees WHERE id = $1 LIMIT 1`, [id]);
     if (res.rows.length === 0) return null;
     return mapRowToAttendee(res.rows[0]);
   }
@@ -193,15 +205,12 @@ class EventDatabase {
     qrId?: string;
     checkedIn?: boolean;
   }): Promise<Attendee> {
-    await this.init();
-    const pool = this.getPool();
-
     let qrId = data.qrId?.trim();
     if (!qrId) {
       let isUnique = false;
       while (!isUnique) {
         qrId = this.generateUniqueQrId();
-        const existing = await pool.query('SELECT id FROM attendees WHERE qr_id = $1', [qrId]);
+        const existing = await this.queryWithRetry('SELECT id FROM attendees WHERE qr_id = $1', [qrId]);
         if (existing.rows.length === 0) {
           isUnique = true;
         }
@@ -210,7 +219,7 @@ class EventDatabase {
 
     const checkedInAt = data.checkedIn ? new Date() : null;
 
-    const res = await pool.query(
+    const res = await this.queryWithRetry(
       `INSERT INTO attendees (qr_id, name, email, company, ticket_type, checked_in_at)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
@@ -228,8 +237,6 @@ class EventDatabase {
   }
 
   public async checkInAttendee(qrId: string): Promise<CheckInResult> {
-    await this.init();
-    const pool = this.getPool();
     const attendee = await this.getAttendeeByQrId(qrId);
 
     if (!attendee) {
@@ -248,7 +255,7 @@ class EventDatabase {
       };
     }
 
-    const res = await pool.query(
+    const res = await this.queryWithRetry(
       `UPDATE attendees SET checked_in_at = NOW() WHERE id = $1 RETURNING *`,
       [attendee.id]
     );
@@ -262,13 +269,10 @@ class EventDatabase {
   }
 
   public async getDashboardSummary(): Promise<DashboardSummary> {
-    await this.init();
-    const pool = this.getPool();
-
     const [totalRes, checkedInRes, recentRes] = await Promise.all([
-      pool.query('SELECT COUNT(*) FROM attendees'),
-      pool.query('SELECT COUNT(*) FROM attendees WHERE checked_in_at IS NOT NULL'),
-      pool.query(`
+      this.queryWithRetry('SELECT COUNT(*) FROM attendees'),
+      this.queryWithRetry('SELECT COUNT(*) FROM attendees WHERE checked_in_at IS NOT NULL'),
+      this.queryWithRetry(`
         SELECT name, ticket_type, company, checked_in_at
         FROM attendees
         WHERE checked_in_at IS NOT NULL
@@ -297,9 +301,7 @@ class EventDatabase {
   }
 
   public async getOrganizerUser(username: string): Promise<{ username: string; displayName: string } | null> {
-    await this.init();
-    const pool = this.getPool();
-    const res = await pool.query(
+    const res = await this.queryWithRetry(
       `SELECT username, display_name FROM organizers WHERE LOWER(username) = LOWER($1) LIMIT 1`,
       [username.trim()]
     );
@@ -311,9 +313,7 @@ class EventDatabase {
   }
 
   public async getOrganizerUserWithHash(username: string): Promise<OrganizerRecord | null> {
-    await this.init();
-    const pool = this.getPool();
-    const res = await pool.query(
+    const res = await this.queryWithRetry(
       `SELECT id, username, display_name, password_hash, created_at FROM organizers WHERE LOWER(username) = LOWER($1) LIMIT 1`,
       [username.trim()]
     );

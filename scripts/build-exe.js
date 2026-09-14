@@ -44,10 +44,13 @@ for (const file of templateFiles) {
     destFileName = 'ARTECH-Station.exe';
   }
   const dest = path.join(outputDir, destFileName);
-  if (fs.statSync(src).isDirectory()) {
-    fs.cpSync(src, dest, { recursive: true });
-  } else {
-    fs.copyFileSync(src, dest);
+  // Only copy binary if not already present, avoiding EBUSY if app is running
+  if (!fs.existsSync(dest)) {
+    if (fs.statSync(src).isDirectory()) {
+      fs.cpSync(src, dest, { recursive: true });
+    } else {
+      fs.copyFileSync(src, dest);
+    }
   }
 }
 
