@@ -17,6 +17,7 @@ import {
 import { api } from '../lib/api.js';
 import { ScannerView } from '../components/ScannerView.js';
 import { PrintBadgeModal } from '../components/PrintBadgeModal.js';
+import { useHardwareScanner, playScannerTone } from '../hooks/useHardwareScanner.js';
 import type { Attendee, CheckInResult } from '../../shared/types.js';
 
 export function AdminCheckIn() {
@@ -42,14 +43,20 @@ export function AdminCheckIn() {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   // =========================================================================
-  // Option A Handlers
+  // Option A Handlers & Global Hardware Scanner
   // =========================================================================
   const handleScan = async (qrId: string) => {
     setIsProcessingScan(true);
     try {
       const result = await api.checkIn(qrId);
       setScanResult(result);
+      if (result.status === 'valid') {
+        playScannerTone('success');
+      } else {
+        playScannerTone('warning');
+      }
     } catch (err: any) {
+      playScannerTone('warning');
       setScanResult({
         status: 'invalid',
         message: err.message || 'Check-in request failed. Please try again.',
@@ -59,6 +66,15 @@ export function AdminCheckIn() {
       setIsProcessingScan(false);
     }
   };
+
+  // Always listening for handheld barcode/QR gun scans across the station
+  useHardwareScanner({
+    onScan: (scannedCode) => {
+      setActiveTab('scan');
+      handleScan(scannedCode);
+    },
+    enabled: true,
+  });
 
   const resetScan = () => {
     setScanResult(null);
@@ -174,9 +190,9 @@ export function AdminCheckIn() {
           {!scanResult ? (
             <div className="rounded-3xl border border-stone-200 bg-white/95 p-6 sm:p-8 backdrop-blur-xl shadow-sm">
               <div className="text-center mb-6">
-                <h2 className="text-xl font-bold text-slate-900">Camera Check-In Scanner</h2>
+                <h2 className="text-xl font-bold text-slate-900">Check-In Scanner Hub</h2>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  Point camera at attendee's digital pass or enter their QR ID manually
+                  Scan pass using your USB/handheld barcode scanner, or enter QR ID below
                 </p>
               </div>
 
@@ -300,6 +316,12 @@ export function AdminCheckIn() {
                     <RotateCcw className="h-4 w-4" />
                     Scan Next Guest
                   </button>
+                </div>
+
+                {/* Live Handheld Scanner Status Banner */}
+                <div className="mt-4 flex items-center justify-center gap-2 rounded-full bg-stone-100/90 border border-stone-200/80 px-4 py-1.5 text-xs font-semibold text-stone-600 shadow-2xs">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Scanner is active — zap next badge anytime to proceed hands-free</span>
                 </div>
               </div>
             </div>

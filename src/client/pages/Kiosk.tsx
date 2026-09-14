@@ -19,6 +19,7 @@ import {
 import { api } from '../lib/api.js';
 import { ScannerView } from '../components/ScannerView.js';
 import { PrintBadgeModal } from '../components/PrintBadgeModal.js';
+import { useHardwareScanner, playScannerTone } from '../hooks/useHardwareScanner.js';
 import type { Attendee, CheckInResult } from '../../shared/types.js';
 
 export function Kiosk() {
@@ -56,14 +57,20 @@ export function Kiosk() {
   };
 
   // =========================================================================
-  // Option A Handlers
+  // Option A Handlers & Global Hardware Scanner
   // =========================================================================
   const handleScan = async (qrId: string) => {
     setIsProcessingScan(true);
     try {
       const result = await api.checkIn(qrId);
       setScanResult(result);
+      if (result.status === 'valid') {
+        playScannerTone('success');
+      } else {
+        playScannerTone('warning');
+      }
     } catch (err: any) {
+      playScannerTone('warning');
       setScanResult({
         status: 'invalid',
         message: err.message || 'Check-in request failed. Please try again.',
@@ -73,6 +80,15 @@ export function Kiosk() {
       setIsProcessingScan(false);
     }
   };
+
+  // Always listening for handheld barcode/QR gun scans on Kiosk
+  useHardwareScanner({
+    onScan: (scannedCode) => {
+      setActiveTab('scan');
+      handleScan(scannedCode);
+    },
+    enabled: true,
+  });
 
   const resetScan = () => {
     setScanResult(null);
@@ -210,9 +226,9 @@ export function Kiosk() {
             {!scanResult ? (
               <div className="rounded-3xl border border-stone-200 bg-white p-6 sm:p-8 shadow-sm">
                 <div className="text-center mb-5">
-                  <h2 className="text-xl font-bold text-slate-900">Scan Your Event Pass</h2>
+                  <h2 className="text-xl font-bold text-slate-900">Scan Event Pass</h2>
                   <p className="text-xs text-stone-500 mt-1">
-                    Hold your digital QR pass in front of the camera for instant check-in.
+                    Scan your pass with the handheld scanner gun, or enter ID manually below.
                   </p>
                 </div>
 
@@ -329,6 +345,12 @@ export function Kiosk() {
                       <RotateCcw className="h-4 w-4" />
                       Scan Next Attendee
                     </button>
+                  </div>
+
+                  {/* Live Handheld Scanner Status Banner */}
+                  <div className="mt-4 flex items-center justify-center gap-2 rounded-full bg-stone-100/90 border border-stone-200/80 px-4 py-1.5 text-xs font-semibold text-stone-600 shadow-2xs">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Scanner active — point at next badge to check in hands-free</span>
                   </div>
                 </div>
               </div>
