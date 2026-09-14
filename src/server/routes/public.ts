@@ -37,7 +37,10 @@ router.post('/public/register', async (req, res): Promise<void> => {
     });
   } catch (err: any) {
     console.error('Registration error:', err);
-    res.status(500).json({ error: err?.message || 'Failed to process registration. Please try again.' });
+    res.status(500).json({
+      error: err?.message || 'Failed to process registration. Please try again.',
+      detail: err?.stack || null,
+    });
   }
 });
 
