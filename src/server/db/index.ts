@@ -85,7 +85,7 @@ class EventDatabase {
   private async _initInternal(): Promise<void> {
     const pool = this.getPool();
 
-    // 1. Create tables
+    // 1. Create tables (badge_printed included for fresh DBs)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS attendees (
         id SERIAL PRIMARY KEY,
@@ -95,6 +95,7 @@ class EventDatabase {
         company VARCHAR(255),
         ticket_type VARCHAR(50) DEFAULT 'General',
         checked_in_at TIMESTAMPTZ,
+        badge_printed BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
@@ -107,6 +108,12 @@ class EventDatabase {
         password_hash TEXT NOT NULL,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+    `);
+
+    // 1b. Safe migration: add badge_printed to existing DBs that pre-date this column
+    await pool.query(`
+      ALTER TABLE attendees
+      ADD COLUMN IF NOT EXISTS badge_printed BOOLEAN NOT NULL DEFAULT FALSE
     `);
 
     // 2. Seed organizer if table is empty
