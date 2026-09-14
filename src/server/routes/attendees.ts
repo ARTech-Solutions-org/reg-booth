@@ -133,4 +133,31 @@ router.post('/attendees/import', requireOrganizer, async (req, res): Promise<voi
   }
 });
 
+// Mark badge as printed (DB-level print-once enforcement)
+router.post('/attendees/:id/mark-printed', async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: 'Invalid attendee ID.' });
+    return;
+  }
+
+  try {
+    const { attendee, alreadyPrinted } = await db.markBadgePrinted(id);
+
+    if (alreadyPrinted) {
+      res.status(409).json({
+        error: 'Badge already printed.',
+        alreadyPrinted: true,
+        attendee,
+      });
+      return;
+    }
+
+    res.json({ success: true, alreadyPrinted: false, attendee });
+  } catch (err: any) {
+    console.error('Mark-printed error:', err);
+    res.status(500).json({ error: err?.message || 'Failed to mark badge as printed.' });
+  }
+});
+
 export default router;

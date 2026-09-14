@@ -6,6 +6,7 @@ export interface Attendee {
   company: string | null;
   ticketType: string;
   checkedInAt: string | null;
+  badgePrinted: boolean;
   createdAt: string;
 }
 

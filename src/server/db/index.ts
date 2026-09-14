@@ -21,6 +21,7 @@ function mapRowToAttendee(row: any): Attendee {
     company: row.company || null,
     ticketType: row.ticket_type || 'General',
     checkedInAt: row.checked_in_at ? new Date(row.checked_in_at).toISOString() : null,
+    badgePrinted: row.badge_printed === true,
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
   };
 }
@@ -266,6 +267,33 @@ class EventDatabase {
       message: `${updated.name} successfully checked in.`,
       attendee: updated,
     };
+  }
+
+  /**
+   * Atomically marks badge_printed = TRUE only if it was FALSE before.
+   * Returns alreadyPrinted=true when the badge was already marked — DB-level print-once enforcement.
+   */
+  public async markBadgePrinted(attendeeId: number): Promise<{ attendee: Attendee; alreadyPrinted: boolean }> {
+    // Conditional update: only updates rows where badge_printed is still FALSE
+    const res = await this.queryWithRetry(
+      `UPDATE attendees
+       SET badge_printed = TRUE
+       WHERE id = $1 AND badge_printed = FALSE
+       RETURNING *`,
+      [attendeeId]
+    );
+
+    if (res.rowCount === 0) {
+      // Already printed — fetch current state and return it
+      const current = await this.queryWithRetry(
+        `SELECT * FROM attendees WHERE id = $1`,
+        [attendeeId]
+      );
+      if (current.rows.length === 0) throw new Error('Attendee not found.');
+      return { attendee: mapRowToAttendee(current.rows[0]), alreadyPrinted: true };
+    }
+
+    return { attendee: mapRowToAttendee(res.rows[0]), alreadyPrinted: false };
   }
 
   public async getDashboardSummary(): Promise<DashboardSummary> {
