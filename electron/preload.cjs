@@ -5,9 +5,13 @@ function sendSilentPrint() {
   ipcRenderer.send('silent-print');
 }
 
-// 1. Expose a secure print trigger to the renderer context
+// 1. Expose secure printer and station config APIs to renderer
 contextBridge.exposeInMainWorld('electronAPI', {
   silentPrint: sendSilentPrint,
+  getPrinters: () => ipcRenderer.invoke('get-printers'),
+  getStationConfig: () => ipcRenderer.invoke('get-station-config'),
+  saveStationConfig: (config) => ipcRenderer.invoke('save-station-config', config),
+  testPrint: (config) => ipcRenderer.invoke('test-print', config),
   isElectron: true,
   platform: process.platform,
 });

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Printer, Download, X, Sparkles, RefreshCw, Check } from 'lucide-react';
-import type { Attendee } from '../../shared/types.js';
+import type { Attendee, PrintConfig } from '../../shared/types.js';
+import { DEFAULT_PRINT_CONFIG } from '../../shared/types.js';
 import { BadgeCard } from './BadgeCard.js';
 import { downloadAttendeeTicket, generateQrDataUrl } from '../lib/qr-utils.js';
 
@@ -11,6 +12,7 @@ interface PrintBadgeModalProps {
   onClose: () => void;
   title?: string;
   subtitle?: string;
+  config?: Partial<PrintConfig>;
 }
 
 export function PrintBadgeModal({
@@ -19,10 +21,37 @@ export function PrintBadgeModal({
   onClose,
   title = 'Print Event Badge',
   subtitle = 'Badge ready for lanyard or credential pocket',
+  config: configProp,
 }: PrintBadgeModalProps) {
   const [qrUrl, setQrUrl] = useState<string>('');
   const [isQrReady, setIsQrReady] = useState(false);
   const [hasPrinted, setHasPrinted] = useState(false);
+  const [activeConfig, setActiveConfig] = useState<PrintConfig>(DEFAULT_PRINT_CONFIG);
+
+  useEffect(() => {
+    if (configProp) {
+      setActiveConfig({ ...DEFAULT_PRINT_CONFIG, ...configProp });
+      return;
+    }
+    // Load config from Electron IPC or API
+    const electron = (window as any).electronAPI;
+    if (electron && typeof electron.getStationConfig === 'function') {
+      electron.getStationConfig().then((cfg: any) => {
+        if (cfg && cfg.printConfig) {
+          setActiveConfig({ ...DEFAULT_PRINT_CONFIG, ...cfg.printConfig });
+        }
+      }).catch(() => {});
+    } else {
+      fetch('/api/station-config')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && data.printConfig) {
+            setActiveConfig({ ...DEFAULT_PRINT_CONFIG, ...data.printConfig });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [configProp, isOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -91,7 +120,7 @@ export function PrintBadgeModal({
 
           {/* Live Badge Preview */}
           <div className="my-2 flex justify-center">
-            <BadgeCard attendee={attendee} qrDataUrl={qrUrl} />
+            <BadgeCard attendee={attendee} qrDataUrl={qrUrl} config={activeConfig} />
           </div>
 
           {/* Action Buttons */}
@@ -143,7 +172,7 @@ export function PrintBadgeModal({
         isOpen &&
         createPortal(
           <div id="print-badge-container">
-            <BadgeCard attendee={attendee} isPrintable={true} qrDataUrl={qrUrl} />
+            <BadgeCard attendee={attendee} isPrintable={true} qrDataUrl={qrUrl} config={activeConfig} />
           </div>,
           document.body
         )}

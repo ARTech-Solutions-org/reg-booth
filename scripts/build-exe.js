@@ -42,6 +42,11 @@ for (const file of templateFiles) {
   let destFileName = file;
   if (file === 'Talabat-Mart-Booth.exe') {
     destFileName = 'ARTECH-Station.exe';
+    const setupDest = path.join(outputDir, 'ARTECH-Printer-Setup.exe');
+    if (!fs.existsSync(setupDest)) {
+      fs.copyFileSync(src, setupDest);
+      console.log('Created ARTECH-Printer-Setup.exe companion binary.');
+    }
   }
   const dest = path.join(outputDir, destFileName);
   // Only copy binary if not already present, avoiding EBUSY if app is running
@@ -107,7 +112,22 @@ const configContent = {
   kiosk: true,
   fullscreen: true,
   printerDeviceName: '',
-  notes: 'Set printerDeviceName to your thermal badge printer name (e.g. Zebra, Brother, Epson) or leave empty for auto-detection. Set kiosk: false to run in a window during setup.'
+  printConfig: {
+    printerDeviceName: '',
+    preset: 'badge-3x4',
+    width: '3.2in',
+    height: '4.4in',
+    orientation: 'portrait',
+    colorMode: 'full-color',
+    accentColor: '#000000',
+    showLanyardHole: true,
+    showLogo: true,
+    showCompany: true,
+    eventName: 'ARTECH • LIVE THE EXPERIENCE',
+    qrSize: 130,
+    fontSizeScale: 'normal'
+  },
+  notes: 'Configure effortlessly via ARTECH-Printer-Setup.exe or edit this file directly.'
 };
 
 fs.writeFileSync(
@@ -118,6 +138,7 @@ fs.writeFileSync(
 
 console.log('\n====================================================');
 console.log(' BUILD SUCCESSFUL!');
-console.log(` Executable Ready at:`);
-console.log(`   ${path.join(outputDir, 'ARTECH-Station.exe')}`);
+console.log(` Executables Ready at:`);
+console.log(`   1. Main Kiosk App:     ${path.join(outputDir, 'ARTECH-Station.exe')}`);
+console.log(`   2. Printer Setup App:  ${path.join(outputDir, 'ARTECH-Printer-Setup.exe')}`);
 console.log('====================================================\n');

@@ -46,3 +46,40 @@ export interface WalkInRegisterInput {
   company?: string;
   ticketType: string;
 }
+
+export type BadgePreset = 'badge-3x4' | 'cr80' | 'label-4x6' | 'roll-80mm' | 'roll-58mm' | 'custom';
+export type PrintColorMode = 'full-color' | 'monochrome' | 'high-contrast';
+export type FontSizeScale = 'compact' | 'normal' | 'large';
+
+export interface PrintConfig {
+  printerDeviceName: string;
+  preset: BadgePreset;
+  width: string;
+  height: string;
+  orientation: 'portrait' | 'landscape';
+  colorMode: PrintColorMode;
+  accentColor: string;
+  showLanyardHole: boolean;
+  showLogo: boolean;
+  showCompany: boolean;
+  eventName: string;
+  qrSize: number;
+  fontSizeScale: FontSizeScale;
+}
+
+export const DEFAULT_PRINT_CONFIG: PrintConfig = {
+  printerDeviceName: '',
+  preset: 'badge-3x4',
+  width: '3.2in',
+  height: '4.4in',
+  orientation: 'portrait',
+  colorMode: 'full-color',
+  accentColor: '#000000',
+  showLanyardHole: true,
+  showLogo: true,
+  showCompany: true,
+  eventName: 'ARTECH • LIVE THE EXPERIENCE',
+  qrSize: 130,
+  fontSizeScale: 'normal',
+};
+

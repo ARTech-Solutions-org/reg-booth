@@ -1,0 +1,22 @@
+{
+  "url": "http://localhost:8080/kiosk",
+  "kiosk": true,
+  "fullscreen": true,
+  "printerDeviceName": "",
+  "printConfig": {
+    "printerDeviceName": "",
+    "preset": "badge-3x4",
+    "width": "3.2in",
+    "height": "4.4in",
+    "orientation": "portrait",
+    "colorMode": "full-color",
+    "accentColor": "#000000",
+    "showLanyardHole": true,
+    "showLogo": true,
+    "showCompany": true,
+    "eventName": "ARTECH • LIVE THE EXPERIENCE",
+    "qrSize": 130,
+    "fontSizeScale": "normal"
+  },
+  "notes": "Configure effortlessly via ARTECH-Printer-Setup.exe or edit this file directly."
+}

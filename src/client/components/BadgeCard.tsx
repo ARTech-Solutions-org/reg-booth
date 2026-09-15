@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import type { Attendee } from '../../shared/types.js';
+import type { Attendee, PrintConfig } from '../../shared/types.js';
 import { generateQrDataUrl } from '../lib/qr-utils.js';
 
 interface BadgeCardProps {
@@ -7,15 +7,28 @@ interface BadgeCardProps {
   eventName?: string;
   isPrintable?: boolean;
   qrDataUrl?: string;
+  config?: Partial<PrintConfig>;
 }
 
 export function BadgeCard({
   attendee,
-  eventName = 'ARTECH • LIVE THE EXPERIENCE',
+  eventName: eventNameProp,
   isPrintable = false,
   qrDataUrl,
+  config,
 }: BadgeCardProps) {
   const [qrUrl, setQrUrl] = useState<string>(qrDataUrl || '');
+
+  const eventName = config?.eventName || eventNameProp || 'ARTECH • LIVE THE EXPERIENCE';
+  const showLanyardHole = config?.showLanyardHole ?? true;
+  const showLogo = config?.showLogo ?? true;
+  const showCompany = config?.showCompany ?? true;
+  const colorMode = config?.colorMode ?? 'full-color';
+  const accentColor = config?.accentColor || '#000000';
+  const qrPixelSize = config?.qrSize || 130;
+  const fontSizeScale = config?.fontSizeScale || 'normal';
+  const orientation = config?.orientation || 'portrait';
+  const isLandscape = orientation === 'landscape';
 
   useEffect(() => {
     if (qrDataUrl) {
@@ -31,42 +44,97 @@ export function BadgeCard({
     };
   }, [attendee.qrId, qrDataUrl]);
 
-  const tier = attendee.ticketType.toLowerCase();
-  const tierColor =
-    tier === 'vip'
+  const tier = (attendee.ticketType || 'Standard').toLowerCase();
+  const isMono = colorMode === 'monochrome';
+
+  // Tier color pill styling
+  let tierStyleClass = 'bg-neutral-100 text-neutral-900 border-neutral-300';
+  let customTierStyle: React.CSSProperties = {};
+
+  if (isMono) {
+    tierStyleClass = tier === 'vip' || tier === 'speaker'
       ? 'bg-black text-white border-black'
-      : tier === 'speaker'
-      ? 'bg-neutral-800 text-white border-neutral-800'
-      : tier === 'press' || tier === 'staff'
-      ? 'bg-neutral-600 text-white border-neutral-600'
-      : 'bg-neutral-100 text-neutral-900 border-neutral-300';
+      : 'bg-white text-black border-black font-black';
+  } else {
+    if (tier === 'vip') {
+      tierStyleClass = 'bg-black text-white border-black shadow-sm';
+    } else if (tier === 'speaker') {
+      tierStyleClass = 'text-white border-transparent';
+      customTierStyle = { backgroundColor: accentColor };
+    } else if (tier === 'press' || tier === 'staff') {
+      tierStyleClass = 'bg-neutral-700 text-white border-neutral-700';
+    } else {
+      tierStyleClass = 'bg-neutral-100 text-neutral-900 border-neutral-300';
+    }
+  }
+
+  // Name font size
+  const nameSizeClass =
+    fontSizeScale === 'compact'
+      ? 'text-xl sm:text-2xl'
+      : fontSizeScale === 'large'
+      ? 'text-2xl sm:text-4xl'
+      : 'text-2xl sm:text-3xl';
+
+  // Dynamic preview width & height when not isPrintable
+  const previewPreset = config?.preset || 'badge-3x4';
+  let previewDimensionsClass = 'w-[320px] sm:w-[350px] min-h-[460px]';
+
+  if (previewPreset === 'cr80') {
+    previewDimensionsClass = isLandscape
+      ? 'w-[380px] h-[240px]'
+      : 'w-[250px] h-[380px]';
+  } else if (previewPreset === 'roll-80mm' || previewPreset === 'roll-58mm') {
+    previewDimensionsClass = 'w-[290px] min-h-[400px]';
+  } else if (previewPreset === 'label-4x6') {
+    previewDimensionsClass = isLandscape
+      ? 'w-[440px] h-[300px]'
+      : 'w-[340px] min-h-[480px]';
+  }
 
   return (
     <div
-      className={`badge-card-printable relative flex flex-col items-center justify-between rounded-2xl bg-white p-6 text-slate-900 transition-all ${
+      className={`badge-card-printable relative flex ${
+        isLandscape ? 'flex-row items-center justify-between' : 'flex-col items-center justify-between'
+      } rounded-2xl bg-white p-5 text-slate-900 transition-all ${
         isPrintable
-          ? 'w-[3.2in] h-[4.4in] shadow-none border border-neutral-300'
-          : 'w-[320px] sm:w-[350px] min-h-[460px] shadow-xl border border-neutral-200'
+          ? 'shadow-none border border-neutral-400'
+          : `${previewDimensionsClass} shadow-xl border border-neutral-200`
       }`}
       style={{
         boxSizing: 'border-box',
+        width: isPrintable ? (config?.width || '3.2in') : undefined,
+        height: isPrintable
+          ? (config?.height === 'auto' ? undefined : (config?.height || '4.4in'))
+          : undefined,
+        minHeight: isPrintable && config?.height === 'auto' ? 'auto' : undefined,
       }}
     >
-      {/* Top minimal header accent */}
-      <div className="w-full h-1 rounded-full bg-neutral-900 -mt-2 mb-2" />
+      {/* Top minimal header accent bar */}
+      {!isLandscape && (
+        <div
+          className="w-full h-1.5 rounded-full -mt-2 mb-2"
+          style={{ backgroundColor: isMono ? '#000000' : accentColor }}
+        />
+      )}
+
       {/* Lanyard punch hole guide indicator */}
-      <div className="flex flex-col items-center gap-1">
-        <div className="h-2 w-10 rounded-full border border-dashed border-neutral-400 bg-neutral-100" />
-      </div>
+      {showLanyardHole && (
+        <div className="flex flex-col items-center gap-1 mb-1">
+          <div className="h-2 w-10 rounded-full border border-dashed border-neutral-400 bg-neutral-100" />
+        </div>
+      )}
 
       {/* Header & Event Title with Brand Mark */}
-      <div className="w-full text-center mt-2 border-b border-neutral-200 pb-2.5 flex flex-col items-center">
+      <div className={`w-full text-center ${isLandscape ? 'border-r pr-4' : 'border-b pb-2.5'} border-neutral-200 flex flex-col items-center`}>
         <div className="flex items-center justify-center gap-1.5 mb-1">
-          <img
-            src="/brand-logo-mark.png"
-            alt="ARTECH"
-            className="h-4 w-4 object-contain filter invert opacity-90"
-          />
+          {showLogo && (
+            <img
+              src="/brand-logo-mark.png"
+              alt="Brand Logo"
+              className={`h-4 w-4 object-contain ${isMono ? 'filter invert contrast-200' : 'filter invert opacity-90'}`}
+            />
+          )}
           <p className="font-mono text-[9px] font-bold uppercase tracking-[0.25em] text-neutral-500">
             Official Credential
           </p>
@@ -77,44 +145,49 @@ export function BadgeCard({
       </div>
 
       {/* Attendee Name & Company */}
-      <div className="w-full text-center my-auto py-2">
-        <h2 className="font-display text-2xl sm:text-3xl font-black tracking-tight text-black leading-tight break-words px-2">
+      <div className="w-full text-center my-auto py-2 flex flex-col items-center justify-center">
+        <h2 className={`font-display ${nameSizeClass} font-black tracking-tight text-black leading-tight break-words px-2`}>
           {attendee.name}
         </h2>
-        {attendee.company && (
+        {showCompany && attendee.company && (
           <p className="mt-1 text-sm font-semibold text-neutral-600 line-clamp-2 px-2">
             {attendee.company}
           </p>
         )}
 
         {/* Ticket Tier Pill */}
-        <div className="mt-3 flex justify-center">
+        <div className="mt-2.5 flex justify-center">
           <span
-            className={`inline-block rounded-md px-4 py-1 font-mono text-xs font-black uppercase tracking-widest border ${tierColor}`}
+            className={`inline-block rounded-md px-4 py-1 font-mono text-xs font-black uppercase tracking-widest border ${tierStyleClass}`}
+            style={customTierStyle}
           >
-            {attendee.ticketType} ACCESS
+            {attendee.ticketType || 'GENERAL'} ACCESS
           </span>
         </div>
       </div>
 
       {/* QR Code Container (Crisp, High Contrast) */}
-      <div className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-white border border-neutral-200 shadow-sm">
+      <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-white border border-neutral-200 shadow-sm">
         {qrUrl ? (
           <img
             src={qrUrl}
             alt={attendee.qrId}
-            className="h-32 w-32 object-contain"
+            style={{ width: `${qrPixelSize}px`, height: `${qrPixelSize}px` }}
+            className="object-contain"
           />
         ) : (
-          <div className="h-32 w-32 animate-pulse bg-neutral-200 rounded-lg" />
+          <div
+            style={{ width: `${qrPixelSize}px`, height: `${qrPixelSize}px` }}
+            className="animate-pulse bg-neutral-200 rounded-lg"
+          />
         )}
-        <span className="mt-1 font-mono text-xs font-bold tracking-widest text-black">
+        <span className="mt-1 font-mono text-[11px] font-bold tracking-widest text-black">
           {attendee.qrId}
         </span>
       </div>
 
       {/* Footer / Access Verification Bar */}
-      <div className="w-full pt-3 mt-1 border-t border-neutral-200 flex items-center justify-between text-[8px] font-mono text-neutral-400 uppercase tracking-wider">
+      <div className="w-full pt-2.5 mt-1 border-t border-neutral-200 flex items-center justify-between text-[8px] font-mono text-neutral-400 uppercase tracking-wider">
         <span>ARTECH Station</span>
         <span>• Pass Valid •</span>
         <span>Auth Entrance</span>
@@ -122,3 +195,4 @@ export function BadgeCard({
     </div>
   );
 }
+

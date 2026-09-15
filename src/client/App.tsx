@@ -9,6 +9,7 @@ import {
   X,
   ExternalLink,
   Camera,
+  Printer,
 } from 'lucide-react';
 import { api } from './lib/api.js';
 import { Register } from './pages/Register.js';
@@ -17,6 +18,7 @@ import { Attendees } from './pages/Attendees.js';
 import { Dashboard } from './pages/Dashboard.js';
 import { Login } from './pages/Login.js';
 import { Kiosk } from './pages/Kiosk.js';
+import { PrinterSetup } from './pages/PrinterSetup.js';
 import type { OrganizerUser } from '../shared/types.js';
 
 function Shell({
@@ -34,6 +36,7 @@ function Shell({
   const navItems = [
     { href: '/admin', label: 'Live Dashboard', icon: Activity },
     { href: '/admin/attendees', label: 'Attendee Roster', icon: Users },
+    { href: '/printer-setup', label: 'Printer & Badge Studio', icon: Printer },
   ];
 
   return (
@@ -233,6 +236,9 @@ export function App() {
 
       {/* Dedicated Entrance Kiosk (Scan QR Pass or Register On-Site Walk-In) */}
       <Route path="/kiosk" component={Kiosk} />
+
+      {/* Standalone Printer & Badge Studio Setup */}
+      <Route path="/printer-setup" component={PrinterSetup} />
 
       {/* Organizer Login */}
       <Route path="/login">

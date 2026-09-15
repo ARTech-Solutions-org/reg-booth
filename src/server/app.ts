@@ -9,6 +9,7 @@ import authRouter from './routes/auth.js';
 import attendeesRouter from './routes/attendees.js';
 import checkInsRouter from './routes/check-ins.js';
 import dashboardRouter from './routes/dashboard.js';
+import configRouter from './routes/config.js';
 
 // ESM-compatible __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -36,6 +37,7 @@ export function createApp(): Express {
   app.use('/api', attendeesRouter);
   app.use('/api', checkInsRouter);
   app.use('/api', dashboardRouter);
+  app.use('/api', configRouter);
 
   // Serve production client build if dist folder exists
   const possibleDistDirs = [

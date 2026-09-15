@@ -154,7 +154,7 @@
     align-items: center !important;
     justify-content: center !important;
     background: #ffffff !important;
-    padding: 10px 0 !important;
+    padding: 0 !important;
     margin: 0 auto !important;
     page-break-after: avoid !important;
     page-break-before: avoid !important;
@@ -164,7 +164,6 @@
 
   #print-badge-container .badge-card-printable {
     box-shadow: none !important;
-    border: 1.5px solid #0f172a !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     -webkit-print-color-adjust: exact !important;

@@ -4,12 +4,21 @@ const fs = require('fs');
 const http = require('http');
 const { spawn } = require('child_process');
 
-// 1. Single Instance Lock - Prevent multiple windows/instances
-const gotTheLock = app.requestSingleInstanceLock();
-if (!gotTheLock) {
-  console.log('[ARTECH Electron] Another instance is already running. Quitting this instance.');
-  app.quit();
-  process.exit(0);
+// 0. Detect Setup Mode (ARTECH-Printer-Setup.exe or --setup flag)
+const exeName = path.basename(process.execPath).toLowerCase();
+const isSetupMode = exeName.includes('printer') || exeName.includes('setup') || process.argv.includes('--setup');
+
+// 1. Single Instance Lock - Isolated for setup mode so both can run if needed
+if (isSetupMode) {
+  app.setAppUserModelId('com.artech.printer-setup');
+} else {
+  app.setAppUserModelId('com.artech.station');
+  const gotTheLock = app.requestSingleInstanceLock();
+  if (!gotTheLock) {
+    console.log('[ARTECH Electron] Another instance is already running. Quitting this instance.');
+    app.quit();
+    process.exit(0);
+  }
 }
 
 // Suppress native print preview dialog and enable background kiosk printing
@@ -28,14 +37,17 @@ if (fs.existsSync(configPath)) {
   }
 }
 
+const defaultUrl = isSetupMode ? 'http://localhost:8080/printer-setup' : 'http://localhost:8080/kiosk';
+const defaultFallbackUrl = isSetupMode ? 'http://localhost:5000/printer-setup' : 'http://localhost:5000/kiosk';
+
 const CONFIG = {
-  url: userConfig.url || 'http://localhost:8080/kiosk',
-  fallbackUrl: 'http://localhost:5000/kiosk',
-  fullscreen: userConfig.fullscreen !== false,
-  frame: false,
-  kiosk: userConfig.kiosk !== false,
+  url: isSetupMode ? defaultUrl : (userConfig.url || defaultUrl),
+  fallbackUrl: isSetupMode ? defaultFallbackUrl : (userConfig.fallbackUrl || defaultFallbackUrl),
+  fullscreen: isSetupMode ? false : (userConfig.fullscreen !== false),
+  frame: isSetupMode ? true : false,
+  kiosk: isSetupMode ? false : (userConfig.kiosk !== false),
   autoHideMenuBar: true,
-  printerDeviceName: userConfig.printerDeviceName || '',
+  printerDeviceName: userConfig.printerDeviceName || (userConfig.printConfig && userConfig.printConfig.printerDeviceName) || '',
 };
 
 const preloadPath = path.join(__dirname, 'preload.js');
@@ -139,6 +151,78 @@ function registerIpc() {
     executeSilentPrint(win).catch((err) => {
       logToRenderer(win, `[ARTECH Electron] Print crash: ${err?.message || err}`, 'error');
     });
+  });
+
+  // 1. Get Windows detected printers
+  ipcMain.handle('get-printers', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender) || mainWindow;
+    if (!win) return [];
+    try {
+      const printers = await win.webContents.getPrintersAsync();
+      return printers;
+    } catch (err) {
+      console.error('[ARTECH Electron] Error listing printers:', err);
+      return [];
+    }
+  });
+
+  // 2. Get current station-config.json
+  ipcMain.handle('get-station-config', async () => {
+    try {
+      if (fs.existsSync(configPath)) {
+        const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        return parsed;
+      }
+    } catch (err) {
+      console.error('[ARTECH Electron] Error reading station-config.json:', err);
+    }
+    return userConfig;
+  });
+
+  // 3. Save updated station-config.json
+  ipcMain.handle('save-station-config', async (_event, newConfig) => {
+    try {
+      let existing = {};
+      if (fs.existsSync(configPath)) {
+        try {
+          existing = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        } catch {}
+      }
+      const merged = {
+        ...existing,
+        ...newConfig,
+      };
+      if (newConfig.printConfig?.printerDeviceName !== undefined) {
+        merged.printerDeviceName = newConfig.printConfig.printerDeviceName;
+      }
+      fs.writeFileSync(configPath, JSON.stringify(merged, null, 2), 'utf8');
+      userConfig = merged;
+      CONFIG.printerDeviceName = merged.printerDeviceName || '';
+      console.log('[ARTECH Electron] Saved station-config.json successfully.');
+      return { success: true, config: merged };
+    } catch (err) {
+      console.error('[ARTECH Electron] Error saving station-config.json:', err);
+      return { success: false, error: err.message || String(err) };
+    }
+  });
+
+  // 4. Test print handler
+  ipcMain.handle('test-print', async (event, customConfig) => {
+    const win = BrowserWindow.fromWebContents(event.sender) || mainWindow;
+    if (!win) return { success: false, failureReason: 'No active window' };
+    try {
+      const targetDevice = (customConfig && customConfig.printerDeviceName) || CONFIG.printerDeviceName;
+      const options = {
+        silent: true,
+        printBackground: true,
+        deviceName: targetDevice || undefined,
+        margins: { marginType: 'none' },
+      };
+      const res = await printOnce(win.webContents, options);
+      return res;
+    } catch (err) {
+      return { success: false, failureReason: err.message || String(err) };
+    }
   });
 }
 
@@ -408,21 +492,43 @@ async function createWindow() {
   registerIpc();
   await startServerIfNeeded();
 
-  mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    fullscreen: CONFIG.fullscreen,
-    frame: CONFIG.frame,
-    kiosk: CONFIG.kiosk,
-    autoHideMenuBar: CONFIG.autoHideMenuBar,
-    backgroundColor: '#08090C',
-    webPreferences: {
-      preload: preloadPath,
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false,
-    },
-  });
+  const winOpts = isSetupMode
+    ? {
+        width: 1160,
+        height: 820,
+        minWidth: 980,
+        minHeight: 650,
+        center: true,
+        fullscreen: false,
+        frame: true,
+        kiosk: false,
+        autoHideMenuBar: true,
+        title: 'ARTECH • Printer & Badge Setup Studio',
+        backgroundColor: '#08090C',
+        webPreferences: {
+          preload: preloadPath,
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: false,
+        },
+      }
+    : {
+        width: 1280,
+        height: 800,
+        fullscreen: CONFIG.fullscreen,
+        frame: CONFIG.frame,
+        kiosk: CONFIG.kiosk,
+        autoHideMenuBar: CONFIG.autoHideMenuBar,
+        backgroundColor: '#08090C',
+        webPreferences: {
+          preload: preloadPath,
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: false,
+        },
+      };
+
+  mainWindow = new BrowserWindow(winOpts);
 
   mainWindow.webContents.on('before-input-event', (event, input) => {
     // Ctrl+P test print
@@ -433,8 +539,8 @@ async function createWindow() {
       });
     }
 
-    // Escape key toggles kiosk mode so organizers can access desktop if needed
-    if (input.key === 'Escape') {
+    // Escape key toggles kiosk mode so organizers can access desktop if needed (kiosk only)
+    if (input.key === 'Escape' && !isSetupMode) {
       const nextKiosk = !mainWindow.isKiosk();
       mainWindow.setKiosk(nextKiosk);
       if (nextKiosk) {
@@ -446,7 +552,7 @@ async function createWindow() {
     }
 
     // F11 toggles fullscreen
-    if (input.key === 'F11') {
+    if (input.key === 'F11' && !isSetupMode) {
       mainWindow.setFullScreen(!mainWindow.isFullScreen());
     }
 
@@ -465,8 +571,10 @@ async function createWindow() {
 
   // Render sleek loading screen immediately to prevent any blank black canvas
   mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(getLoadingHtml(targetUrl)));
-  mainWindow.setMenuBarVisibility(false);
-  setTaskbarVisible(false);
+  if (!isSetupMode) {
+    mainWindow.setMenuBarVisibility(false);
+    setTaskbarVisible(false);
+  }
 
   // Poll until the server/target responds, then load the real page
   let attempts = 0;
@@ -520,5 +628,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-  setTaskbarVisible(true);
+  if (!isSetupMode) {
+    setTaskbarVisible(true);
+  }
 });
