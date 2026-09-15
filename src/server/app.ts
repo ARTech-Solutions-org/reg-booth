@@ -11,9 +11,21 @@ import checkInsRouter from './routes/check-ins.js';
 import dashboardRouter from './routes/dashboard.js';
 import configRouter from './routes/config.js';
 
-// ESM-compatible __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// ESM and CJS dual-compatible directory resolver
+function getAppDir(): string {
+  if (typeof __dirname !== 'undefined') {
+    return __dirname;
+  }
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta && import.meta.url) {
+      return path.dirname(fileURLToPath(import.meta.url));
+    }
+  } catch {
+    // ignore
+  }
+  return process.cwd();
+}
+const currentDir = getAppDir();
 
 export function createApp(): Express {
   const app = express();
@@ -44,8 +56,8 @@ export function createApp(): Express {
     process.env.CLIENT_DIST,
     path.resolve(process.cwd(), 'dist'),
     path.resolve(process.cwd(), 'resources', 'app', 'dist'),
-    path.join(__dirname, '..', 'dist'),
-    path.join(__dirname, 'dist'),
+    path.join(currentDir, '..', 'dist'),
+    path.join(currentDir, 'dist'),
   ].filter(Boolean) as string[];
 
   const clientDist = possibleDistDirs.find(d => {
